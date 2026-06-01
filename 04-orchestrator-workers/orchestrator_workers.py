@@ -1,9 +1,13 @@
-"""04 · Orchestrator-Workers — dynamically split work, delegate, synthesize.
+"""04 · Orchestrator-Workers — the simplest version.
 
-Unlike parallelization (where WE fix the subtasks), here the ORCHESTRATOR
-decides the subtasks at runtime based on the input:
+An orchestrator LLM decides, at runtime, how to break a task into subtasks; a
+worker handles each subtask; the orchestrator then combines the results.
 
-    topic → [orchestrator picks subtopics] → [worker per subtopic] → [synthesize]
+The key difference from parallelization (03): the subtasks are NOT fixed in
+code. The orchestrator chooses them based on the input, so a different task
+produces a different set of subtasks.
+
+    task → [orchestrator picks subtasks] → [worker per subtask] → [synthesize]
 
 Run it:
     pip install anthropic
@@ -17,84 +21,52 @@ from concurrent.futures import ThreadPoolExecutor
 
 import anthropic
 
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
 
-def complete(prompt: str, system: str | None = None, max_tokens: int = 2048) -> str:
-    """Send a single prompt and return Claude's text response."""
-    kwargs: dict = {
-        "model": MODEL,
-        "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    if system is not None:
-        kwargs["system"] = system
-    response = client.messages.create(**kwargs)
-    return "".join(b.text for b in response.content if b.type == "text")
-
-
-def orchestrate(topic: str) -> list[str]:
-    """The orchestrator decides how to break the task down.
-
-    We ask for a JSON array of subtopics so the plan is structured and
-    inspectable. The number and content of subtopics is the model's call — we
-    don't know it in advance.
-    """
-    raw = complete(
-        f"You are planning a short research brief on: {topic}\n\n"
-        "List 3 focused subtopics that together would make a well-rounded brief. "
-        'Respond with ONLY a JSON array of strings, e.g. ["a", "b", "c"].',
-        max_tokens=256,
+def ask(prompt: str, max_tokens: int = 2048) -> str:
+    """Send one prompt and return the text."""
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}],
     )
-    try:
-        subtopics = json.loads(raw)
-        if isinstance(subtopics, list) and subtopics:
-            return [str(s) for s in subtopics]
-    except json.JSONDecodeError:
-        pass
-    # Fallback so the demo still runs if parsing fails.
-    return [topic]
+    return msg.content[0].text
 
 
-def work(topic: str, subtopic: str) -> tuple[str, str]:
-    """A worker researches one subtopic. Returns (subtopic, findings)."""
-    findings = complete(
-        f"Write a concise, factual paragraph (3-4 sentences) about '{subtopic}' "
-        f"in the context of '{topic}'."
-    )
-    return subtopic, findings
+task = "Write a short briefing on whether a small startup should build its own LLM."
+
+# Step 1 — ORCHESTRATE: the model decides the subtasks. We don't hard-code them;
+# they come back as a JSON list chosen for this specific task.
+plan = ask(
+    f"Break this task into 3-4 focused subtasks.\n\nTask: {task}\n\n"
+    'Reply with ONLY a JSON array of short subtask strings, e.g. ["a", "b"].'
+)
+# Slice from the first '[' to the last ']' so stray prose or code fences around
+# the JSON don't break parsing.
+subtasks = json.loads(plan[plan.index("[") : plan.rindex("]") + 1])
+
+print("Orchestrator chose these subtasks:")
+for s in subtasks:
+    print(f"  • {s}")
 
 
-def synthesize(topic: str, sections: dict[str, str]) -> str:
-    """The orchestrator combines the workers' outputs into one brief."""
-    body = "\n\n".join(f"### {sub}\n{text}" for sub, text in sections.items())
-    return complete(
-        f"Combine these researched sections into a single coherent research brief "
-        f"on '{topic}'. Add a one-sentence intro and a one-sentence conclusion. "
-        f"Keep the section content intact.\n\n{body}",
-        max_tokens=1200,
-    )
+# Step 2 — WORKERS: one worker handles each subtask (run in parallel).
+def work(subtask: str) -> str:
+    return ask(f"Write a concise paragraph covering this subtask of '{task}':\n{subtask}")
 
 
-def run(topic: str) -> str:
-    print("Phase 1 — orchestrate (decide subtopics)")
-    subtopics = orchestrate(topic)
-    for s in subtopics:
-        print(f"  • {s}")
+with ThreadPoolExecutor() as pool:
+    sections = list(pool.map(work, subtasks))
 
-    print("\nPhase 2 — workers (research each subtopic in parallel)")
-    with ThreadPoolExecutor(max_workers=len(subtopics)) as pool:
-        sections = dict(pool.map(lambda s: work(topic, s), subtopics))
-    print(f"  {len(sections)} sections researched.")
+# Step 3 — SYNTHESIZE: the orchestrator combines the workers' outputs.
+combined = "\n\n".join(f"## {s}\n{text}" for s, text in zip(subtasks, sections))
+briefing = ask(
+    f"Combine these sections into one coherent briefing on '{task}'. "
+    f"Add a one-sentence intro and conclusion; keep the content.\n\n{combined}",
+    max_tokens=4096,
+)
 
-    print("\nPhase 3 — synthesize")
-    return synthesize(topic, sections)
-
-
-if __name__ == "__main__":
-    topic = "the impact of urban green roofs on city heat"
-    print(f"Topic: {topic}\n")
-    brief = run(topic)
-    print("\n--- research brief ---")
-    print(brief)
+print("\n=== briefing ===")
+print(briefing)
