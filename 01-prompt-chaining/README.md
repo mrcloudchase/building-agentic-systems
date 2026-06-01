@@ -9,26 +9,33 @@ The simplest way to compose multiple LLM calls: call the model, then call it
 again with the previous answer fed into the next prompt.
 
 ```
-input → [LLM call 1] → [LLM call 2] → output
+input → [LLM call 1] → [LLM call 2] → [LLM call 3] → output
 ```
 
-The defining property is that **handoff** — call 2 works on whatever call 1
-produced. Because *you* fix the order of steps in code, this is a **workflow**,
-not an agent: nothing is decided at runtime.
+The defining property is that **handoff** — each call works on whatever the
+previous call produced. Because *you* fix the order of steps in code, this is a
+**workflow**, not an agent: nothing is decided at runtime.
 
 ## What the example does
 
 [`prompt_chaining.py`](./prompt_chaining.py) writes a how-to technical document
-in two chained calls:
+in three chained calls:
 
 | Step | Input | Output |
 |------|-------|--------|
-| 1 · outline | the topic ("how to build & train a GPT-3-style LLM") | a numbered outline of the steps |
-| 2 · write | the outline from step 1 | the full how-to doc |
+| 1 · outline | the topic ("how to build & train a GPT-3-style LLM") | a numbered outline, in a fixed Markdown format |
+| 2 · write | the outline from step 1 | the full how-to doc, in a fixed Markdown format |
+| 3 · copy edit | the doc from step 2 | a polished final doc, structure unchanged |
 
-That's the entire pattern: the `outline` variable is pasted into step 2's
+That's the entire pattern: each step's output is pasted into the next step's
 prompt. This is the article's own example — "write an outline of a document,
-then write the document based on the outline."
+then write the document based on the outline" — with a copy-edit pass added on
+the end.
+
+**Pinning the format.** Steps 1 and 2 each show the model an exact Markdown
+template (`OUTLINE_FORMAT` / `DOC_FORMAT`) and say "use exactly this format."
+That tiny format example makes the output consistent run to run, so the next
+step in the chain always receives the shape it expects.
 
 ## Why chain instead of one big prompt?
 
