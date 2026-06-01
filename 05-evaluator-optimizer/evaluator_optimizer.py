@@ -1,42 +1,32 @@
-"""05 · Evaluator-Optimizer — generate, critique, revise, repeat.
+"""05 · Evaluator-Optimizer — the simplest version.
 
-One role writes a tagline; another judges it against explicit criteria and
-returns feedback. The loop runs until the evaluator says PASS or we hit the
-round limit.
+Two roles in a feedback loop: the optimizer writes a candidate, the evaluator
+judges it against criteria and returns feedback, the optimizer revises. Repeat
+until the evaluator says PASS or we hit the round limit.
 
     [optimizer writes] → [evaluator judges] → PASS? → done
           ▲                                      │
           └──────────── feedback ────────────────┘
 
-Run it:
+Run it (pass a brief, or use the default):
     pip install anthropic
     export ANTHROPIC_API_KEY="sk-ant-..."
     python 05-evaluator-optimizer/evaluator_optimizer.py
+    python 05-evaluator-optimizer/evaluator_optimizer.py "a budget travel backpack"
 """
 
 import os
+import sys
 
 import anthropic
 
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
+DEFAULT_INPUT = "a reusable water bottle that filters tap water as you drink"
 
-def complete(prompt: str, system: str | None = None, max_tokens: int = 2048) -> str:
-    """Send a single prompt and return Claude's text response."""
-    kwargs: dict = {
-        "model": MODEL,
-        "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    if system is not None:
-        kwargs["system"] = system
-    response = client.messages.create(**kwargs)
-    return "".join(b.text for b in response.content if b.type == "text")
-
-
+# Loop config: how many rounds to allow, and what "good" means.
 MAX_ROUNDS = 4
-
 CRITERIA = (
     "1) at most 8 words; "
     "2) names a concrete user benefit; "
@@ -44,8 +34,18 @@ CRITERIA = (
 )
 
 
+def ask(prompt: str, max_tokens: int = 256) -> str:
+    """Call the provider with one prompt and return the text."""
+    msg = client.messages.create(
+        model=MODEL,
+        max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return msg.content[0].text
+
+
 def optimize(brief: str, previous: str | None, feedback: str | None) -> str:
-    """The optimizer writes (or revises) a tagline."""
+    """Generate (or revise) a tagline for the brief."""
     if previous is None:
         prompt = f"Write a product tagline.\n\nBrief: {brief}\n\nReturn only the tagline."
     else:
@@ -55,28 +55,27 @@ def optimize(brief: str, previous: str | None, feedback: str | None) -> str:
             f"An editor's feedback: {feedback}\n\n"
             "Write an improved tagline addressing the feedback. Return only the tagline."
         )
-    return complete(prompt, max_tokens=64).strip().strip('"')
+    return ask(prompt).strip().strip('"')
 
 
 def evaluate(brief: str, tagline: str) -> tuple[bool, str]:
-    """The evaluator judges the tagline. Returns (passed, feedback)."""
-    verdict = complete(
-        f"You are a strict tagline editor. Judge this tagline against the criteria.\n\n"
+    """Judge the tagline against CRITERIA. Returns (passed, feedback)."""
+    verdict = ask(
+        "You are a strict tagline editor. Judge this tagline against the criteria.\n\n"
         f"Brief: {brief}\n"
         f"Criteria: {CRITERIA}\n"
         f'Tagline: "{tagline}"\n\n'
         "Respond on a single line as either:\n"
         "  PASS\n"
-        "  FAIL: <one sentence of specific, actionable feedback>",
-        max_tokens=128,
+        "  FAIL: <one sentence of specific, actionable feedback>"
     ).strip()
-
     passed = verdict.upper().startswith("PASS")
     feedback = "" if passed else verdict.split(":", 1)[-1].strip()
     return passed, feedback
 
 
 def run(brief: str) -> str:
+    """Loop: optimize, evaluate, repeat until PASS or MAX_ROUNDS."""
     tagline: str | None = None
     feedback: str | None = None
 
@@ -95,7 +94,7 @@ def run(brief: str) -> str:
 
 
 if __name__ == "__main__":
-    brief = "a reusable water bottle that filters tap water as you drink"
+    brief = " ".join(sys.argv[1:]) or DEFAULT_INPUT
     print(f"Brief: {brief}\n")
     final = run(brief)
     print("--- final tagline ---")
