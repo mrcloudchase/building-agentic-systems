@@ -51,8 +51,12 @@ Steps 1 and 2 also show the model an exact Markdown template (`OUTLINE_FORMAT` /
 `DOC_FORMAT`) and say "use exactly this format," so the output is consistent run
 to run and the next step always gets the shape it expects.
 
+The chain is wrapped in a reusable `run(topic)`, so it works for any how-to
+topic — pass one on the command line:
+
 ```bash
-python 01-prompt-chaining/prompt_chaining.py
+python 01-prompt-chaining/prompt_chaining.py "how to deploy a Django app to AWS"
+# no argument → default: "how to build and train a GPT-3-style LLM"
 ```
 
 To add a gate, you'd drop a check between two steps:
