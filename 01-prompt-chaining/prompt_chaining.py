@@ -25,11 +25,16 @@ client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
 
-def ask(prompt: str) -> str:
-    """Send one prompt, return Claude's text. A single link in the chain."""
+def ask(prompt: str, max_tokens: int = 4096) -> str:
+    """Send one prompt, return Claude's text. A single link in the chain.
+
+    `max_tokens` is the per-call output cap. The outline is short, but the full
+    how-to doc can be long, so we raise the cap for those steps to avoid
+    truncating the document mid-section.
+    """
     msg = client.messages.create(
         model=MODEL,
-        max_tokens=4096,
+        max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
     )
     return msg.content[0].text
@@ -89,7 +94,8 @@ doc = ask(
     "Write a clear how-to technical document from this outline. For each step, "
     "add a one-line explanation and any shell commands.\n\n"
     f"Use exactly this Markdown format:\n\n{DOC_FORMAT}\n\n"
-    f"Outline:\n{outline}"
+    f"Outline:\n{outline}",
+    max_tokens=16000,  # a full technical how-to can be long — give it room
 )
 
 # Step 3: copy edit the doc — step 2's output is the input to step 3.
@@ -97,7 +103,8 @@ final = ask(
     "Copy edit this technical document: fix grammar, spelling, and awkward "
     "phrasing, and make terminology consistent. Keep the Markdown structure and "
     "every command unchanged. Return only the edited document.\n\n"
-    f"{doc}"
+    f"{doc}",
+    max_tokens=16000,  # the edited doc reproduces the whole thing — match the cap
 )
 
 print("=== STEP 1: outline ===")
