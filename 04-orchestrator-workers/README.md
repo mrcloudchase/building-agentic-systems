@@ -32,19 +32,28 @@ the subtasks in advance.
 
 ## What the example does
 
-[`orchestrator_workers.py`](./orchestrator_workers.py) turns a software feature
-request into an implementation plan in three phases:
+[`orchestrator_workers.py`](./orchestrator_workers.py) is a reusable `run(task)`
+that works for **any prompt**. It's three small, generic functions:
 
-1. **Orchestrate** — the model breaks the feature into a JSON list of
-   implementation subtasks. *This list is the plan* — how many subtasks and
-   which ones depend on the feature, so we can't hard-code them.
-2. **Workers** — one worker fleshes out each subtask (approach + a short code
-   sketch), run in parallel.
-3. **Synthesize** — the orchestrator combines the worked-out subtasks into one
-   ordered implementation plan.
+1. **`orchestrate(task)`** — the model splits the task into a JSON list of
+   subtasks. *We don't know how many or which ones until it answers* — they're
+   chosen at runtime from the prompt.
+2. **`work(task, subtask)`** — one worker completes each subtask, run in
+   parallel.
+3. **`synthesize(...)`** — the orchestrator combines the workers' outputs into
+   one cohesive result.
 
-Run it on a different feature and the orchestrator produces a different plan —
-the workflow reshapes itself to the input.
+None of it is hard-coded to a particular task, which is the point — pass any
+prompt and the workflow reshapes itself to it:
+
+```bash
+python 04-orchestrator-workers/orchestrator_workers.py "Plan a 3-day trip to Tokyo"
+python 04-orchestrator-workers/orchestrator_workers.py "Outline a course on databases"
+```
+
+The default prompt (no argument) writes a guide to starting a podcast. A
+software feature request would instead produce an implementation plan; a
+research question would produce a researched answer. Same machinery, any input.
 
 > **This is not a coding agent.** It's a single pass — decompose, delegate,
 > synthesize — with no acting on a real codebase and no test feedback. A full
