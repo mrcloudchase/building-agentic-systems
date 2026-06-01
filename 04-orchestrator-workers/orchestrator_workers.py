@@ -4,10 +4,10 @@ An orchestrator LLM decides, at runtime, how to break a task into subtasks; a
 worker handles each subtask; the orchestrator then combines the results.
 
 The key difference from parallelization (03): the subtasks are NOT fixed in
-code. The orchestrator chooses them based on the input, so a different task
-produces a different set of subtasks.
+code. The orchestrator chooses them based on the input, so a different question
+produces a different set of sub-questions.
 
-    task → [orchestrator picks subtasks] → [worker per subtask] → [synthesize]
+    question → [orchestrator splits into sub-questions] → [worker answers each] → [synthesize]
 
 Run it:
     pip install anthropic
@@ -35,38 +35,42 @@ def ask(prompt: str, max_tokens: int = 2048) -> str:
     return msg.content[0].text
 
 
-task = "Write a short briefing on whether a small startup should build its own LLM."
+question = (
+    "What would it take for a startup to train a GPT-3-scale language model "
+    "from scratch today?"
+)
 
-# Step 1 — ORCHESTRATE: the model decides the subtasks. We don't hard-code them;
-# they come back as a JSON list chosen for this specific task.
+# Step 1 — ORCHESTRATE: the model splits the question into sub-questions. We
+# don't hard-code them; how many and which ones depend on this question.
 plan = ask(
-    f"Break this task into 3-4 focused subtasks.\n\nTask: {task}\n\n"
-    'Reply with ONLY a JSON array of short subtask strings, e.g. ["a", "b"].'
+    "Break this question into 3-4 focused sub-questions that, answered together, "
+    f"would fully address it.\n\nQuestion: {question}\n\n"
+    'Reply with ONLY a JSON array of sub-question strings.'
 )
 # Slice from the first '[' to the last ']' so stray prose or code fences around
 # the JSON don't break parsing.
-subtasks = json.loads(plan[plan.index("[") : plan.rindex("]") + 1])
+subquestions = json.loads(plan[plan.index("[") : plan.rindex("]") + 1])
 
-print("Orchestrator chose these subtasks:")
-for s in subtasks:
-    print(f"  • {s}")
+print("Orchestrator split the question into:")
+for q in subquestions:
+    print(f"  • {q}")
 
 
-# Step 2 — WORKERS: one worker handles each subtask (run in parallel).
-def work(subtask: str) -> str:
-    return ask(f"Write a concise paragraph covering this subtask of '{task}':\n{subtask}")
+# Step 2 — WORKERS: one worker answers each sub-question (run in parallel).
+def work(subquestion: str) -> str:
+    return ask(f"Answer this sub-question concisely in 3-4 sentences:\n{subquestion}")
 
 
 with ThreadPoolExecutor() as pool:
-    sections = list(pool.map(work, subtasks))
+    answers = list(pool.map(work, subquestions))
 
-# Step 3 — SYNTHESIZE: the orchestrator combines the workers' outputs.
-combined = "\n\n".join(f"## {s}\n{text}" for s, text in zip(subtasks, sections))
-briefing = ask(
-    f"Combine these sections into one coherent briefing on '{task}'. "
-    f"Add a one-sentence intro and conclusion; keep the content.\n\n{combined}",
+# Step 3 — SYNTHESIZE: the orchestrator integrates the answers into one response.
+research = "\n\n".join(f"Q: {q}\nA: {a}" for q, a in zip(subquestions, answers))
+final = ask(
+    "Using these researched sub-answers, write a clear, integrated answer to the "
+    f"original question: {question}\n\n{research}",
     max_tokens=4096,
 )
 
-print("\n=== briefing ===")
-print(briefing)
+print("\n=== integrated answer ===")
+print(final)

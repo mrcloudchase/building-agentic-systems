@@ -32,18 +32,18 @@ the subtasks in advance.
 
 ## What the example does
 
-[`orchestrator_workers.py`](./orchestrator_workers.py) writes a short briefing in
-three phases:
+[`orchestrator_workers.py`](./orchestrator_workers.py) answers a complex question
+in three phases:
 
-1. **Orchestrate** — the model reads the task and returns a JSON list of
-   subtasks. *We don't know how many or what they are until it answers* — that's
-   the dynamic decomposition.
-2. **Workers** — one worker call handles each subtask (run in parallel).
-3. **Synthesize** — the orchestrator stitches the worker outputs into one
-   coherent briefing.
+1. **Orchestrate** — the model splits the question into a JSON list of
+   sub-questions. *We don't know how many or what they are until it answers* —
+   that's the dynamic decomposition.
+2. **Workers** — one worker call answers each sub-question (run in parallel).
+3. **Synthesize** — the orchestrator integrates the answers into one coherent
+   response to the original question.
 
-Run it on a different task and the orchestrator picks different subtasks — the
-workflow reshapes itself to the input.
+Run it on a different question and the orchestrator picks different
+sub-questions — the workflow reshapes itself to the input.
 
 ## When to use it
 
