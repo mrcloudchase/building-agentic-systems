@@ -9,15 +9,18 @@ This is mechanically like the augmented-LLM loop in 00, but the mindset is
 different: open-ended goal, model-chosen steps, runs to completion on its own.
 
 Run it:
+    pip install anthropic
+    export ANTHROPIC_API_KEY="sk-ant-..."
     python 06-autonomous-agent/autonomous_agent.py
 """
 
-import sys
+import os
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+import anthropic
 
-from shared import MODEL, client  # noqa: E402
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 
 # Everything the agent does is confined to this scratch directory (gitignored).
 SANDBOX = Path(__file__).resolve().parent / "sandbox"

@@ -6,16 +6,21 @@ tool, *we* execute it, we hand the result back, and the model continues until it
 has a final answer.
 
 Run it:
+    pip install anthropic
+    export ANTHROPIC_API_KEY="sk-ant-..."
     python 00-augmented-llm/augmented_llm.py
 """
 
-import sys
-from pathlib import Path
+import os
 
-# Make the shared module importable when run from anywhere.
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+import anthropic
 
-from shared import MODEL, client  # noqa: E402
+# Defaults to the most capable Claude model. Override with ANTHROPIC_MODEL to
+# experiment with a cheaper/faster one (the pattern is identical either way).
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+
+# Reads ANTHROPIC_API_KEY from the environment.
+client = anthropic.Anthropic()
 
 
 # --- The tools the model is allowed to call --------------------------------

@@ -8,6 +8,9 @@ Each folder teaches **one** pattern: a short, heavily-commented program plus a
 README that explains the pattern the way you'd explain it to a colleague — what
 it is, when to reach for it, and how the code maps to the idea.
 
+Every example is **fully self-contained** — one file, no shared modules, no
+local imports. Copy any single script out on its own and it still runs.
+
 ## The big idea
 
 The article's thesis is simple:
@@ -72,8 +75,9 @@ python 00-augmented-llm/augmented_llm.py
 python 06-autonomous-agent/autonomous_agent.py
 ```
 
-All examples share [`shared.py`](./shared.py), which holds the client setup and
-a tiny `complete()` helper so each file can focus on the pattern itself.
+Each example is one self-contained file — it sets up its own client and (for the
+workflow patterns) its own small `complete()` helper inline, so you can read or
+copy any single script in isolation.
 
 ## How to read this repo
 

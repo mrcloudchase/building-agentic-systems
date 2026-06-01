@@ -8,15 +8,31 @@ The router is constrained to return exactly one valid label, so the routing
 decision is clean. Each handler has its own focused system prompt.
 
 Run it:
+    pip install anthropic
+    export ANTHROPIC_API_KEY="sk-ant-..."
     python 02-routing/routing.py
 """
 
-import sys
-from pathlib import Path
+import os
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+import anthropic
 
-from shared import complete  # noqa: E402
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+
+
+def complete(prompt: str, system: str | None = None, max_tokens: int = 2048) -> str:
+    """Send a single prompt and return Claude's text response."""
+    kwargs: dict = {
+        "model": MODEL,
+        "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system is not None:
+        kwargs["system"] = system
+    response = client.messages.create(**kwargs)
+    return "".join(b.text for b in response.content if b.type == "text")
+
 
 # Each route has a system prompt tuned for that category. This is the payoff of
 # routing: focused prompts that can be improved independently.

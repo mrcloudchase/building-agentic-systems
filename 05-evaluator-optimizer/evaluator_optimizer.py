@@ -9,15 +9,31 @@ round limit.
           └──────────── feedback ────────────────┘
 
 Run it:
+    pip install anthropic
+    export ANTHROPIC_API_KEY="sk-ant-..."
     python 05-evaluator-optimizer/evaluator_optimizer.py
 """
 
-import sys
-from pathlib import Path
+import os
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+import anthropic
 
-from shared import complete  # noqa: E402
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+
+
+def complete(prompt: str, system: str | None = None, max_tokens: int = 2048) -> str:
+    """Send a single prompt and return Claude's text response."""
+    kwargs: dict = {
+        "model": MODEL,
+        "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system is not None:
+        kwargs["system"] = system
+    response = client.messages.create(**kwargs)
+    return "".join(b.text for b in response.content if b.type == "text")
+
 
 MAX_ROUNDS = 4
 
