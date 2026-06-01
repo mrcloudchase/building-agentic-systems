@@ -35,10 +35,10 @@ This is the central distinction of the whole article:
 | Number of steps | fixed/bounded by design | open-ended |
 | Best for | well-defined tasks | open-ended tasks you can't script |
 
-Note that the agent loop is *mechanically* similar to the augmented-LLM loop in
-[00](../00-augmented-llm/) — the difference is mindset and scope: here the model
-runs many steps autonomously toward an open-ended goal, deciding for itself when
-it's finished.
+Mechanically it's just a tool-use loop — the same request/execute/feed-back
+cycle any tool-using LLM call uses. What makes it an *agent* is mindset and
+scope: the model runs many steps autonomously toward an open-ended goal,
+deciding for itself which tools to call and when it's finished.
 
 ## What the example does
 
