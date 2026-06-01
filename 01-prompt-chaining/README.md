@@ -27,7 +27,9 @@ result. It trades a little latency for accuracy, since each call is an easier
 task than the whole.
 
 Don't use it when the steps depend on what earlier steps *discover* — if you
-can't lay out the full sequence before running, this isn't the right pattern.
+can't lay out the sequence before running, you want
+[orchestrator-workers](../04-orchestrator-workers/) or a full
+[agent](../06-autonomous-agent/) instead.
 
 **Examples from the article:** writing an outline of a document and then writing
 the document from that outline; generating marketing copy and then translating
@@ -61,3 +63,6 @@ if "1." not in outline:                 # the gate: did we actually get steps?
     raise ValueError("step 1 didn't produce an outline — stopping")
 doc = ask(f"Write the doc from this outline:\n{outline}")
 ```
+
+➡️ **Next:** [02 · Routing](../02-routing/) — pick a specialized path based on the
+input instead of running a fixed sequence.

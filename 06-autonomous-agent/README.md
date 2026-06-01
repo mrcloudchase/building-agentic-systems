@@ -19,7 +19,7 @@ goal → ┌──────────────────────�
                   task complete → output
 ```
 
-The defining difference from a hard-coded workflow: **the model decides what
+The defining difference from the workflows (01–05): **the model decides what
 happens next**, not your code. The control flow is dynamic and the number of
 steps is open-ended. The model gets ground truth from the environment (real tool
 results) at each step, which lets it course-correct as it goes.
@@ -56,3 +56,7 @@ follow its reasoning.
 ```bash
 python 06-autonomous-agent/autonomous_agent.py
 ```
+
+➡️ **Back to:** [the overview](../README.md) — and remember the through-line:
+start simple, and only graduate to this much autonomy when the task genuinely
+demands it.

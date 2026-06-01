@@ -29,8 +29,9 @@ Reach for parallelization when subtasks are **independent and can run
 concurrently** (sectioning), or when **multiple attempts at the same task**
 improve coverage or confidence (voting).
 
-The subtasks here are **fixed by you** in advance — this pattern isn't suited to
-cases where the subtasks must be decided at runtime from the input.
+The subtasks here are **fixed by you** in advance. When they must be decided at
+runtime from the input, you want
+[orchestrator-workers](../04-orchestrator-workers/) instead.
 
 **Examples from the article:** *sectioning* — one model answers a query while
 another simultaneously screens it for inappropriate content; *voting* — several
@@ -55,3 +56,6 @@ out, collect the results.
 ```bash
 python 03-parallelization/parallelization.py
 ```
+
+➡️ **Next:** [04 · Orchestrator-Workers](../04-orchestrator-workers/) — when you
+can't predict the subtasks ahead of time.

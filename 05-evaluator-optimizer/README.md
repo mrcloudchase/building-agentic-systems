@@ -53,3 +53,6 @@ You'll see the tagline visibly improve as the evaluator's notes get folded in.
 ```bash
 python 05-evaluator-optimizer/evaluator_optimizer.py
 ```
+
+➡️ **Next:** [06 · Autonomous Agent](../06-autonomous-agent/) — hand the control
+flow to the model itself.
