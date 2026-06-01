@@ -37,21 +37,38 @@ cost and latency.
 
 ## Example
 
-[`routing.py`](./routing.py) is a support-triage demo. It classifies each
-message, then answers it with that category's specialized system prompt:
+[`routing.py`](./routing.py) is a support-triage demo. The routes are **data** —
+a dict of category → specialized system prompt — and `route()` is two calls:
+classify, then dispatch.
 
-| Message | Route | Handler |
-|---------|-------|---------|
-| "I was double-charged — can I get a refund?" | `billing` | billing specialist prompt |
-| "The app crashes when I upload a photo." | `technical` | support-engineer prompt |
-| "What are your support hours?" | `general` | friendly-generalist prompt |
+```python
+ROUTES = {
+    "billing":   "You are a billing specialist...",
+    "technical": "You are a support engineer...",
+    "general":   "You are a friendly support agent...",
+}
 
-The whole pattern is the two calls in `handle()`: one to pick the label
-(validated against `ROUTES`, with a `general` fallback), one to answer with
-`ROUTES[label]`.
+def route(routes, message):
+    labels = ", ".join(routes)
+    category = ask(f"Classify into one of: {labels}...\n{message}").strip().lower()
+    return ask(message, system=routes[category])   # dispatch to the chosen route
+```
+
+So different messages take different paths:
+
+| Message | Route |
+|---------|-------|
+| "I was double-charged — can I get a refund?" | `billing` |
+| "The app crashes when I upload a photo." | `technical` |
+| "What are your support hours?" | `general` |
+
+The classifier's labels come straight from the `ROUTES` keys, so adding a
+category updates the routing automatically (with a fallback to the first route if
+the model returns something unexpected). It runs on any message:
 
 ```bash
-python 02-routing/routing.py
+python 02-routing/routing.py "The app crashes when I upload a photo"
+# no argument → default: a billing question
 ```
 
 ➡️ **Next:** [03 · Parallelization](../03-parallelization/) — run multiple calls at
