@@ -1,11 +1,14 @@
-"""01 · Prompt Chaining — a fixed sequence of LLM calls with a gate.
+"""01 · Prompt Chaining — a fixed sequence of LLM calls, each feeding the next.
 
-We turn a topic into polished marketing copy in three steps:
+Prompt chaining decomposes a task into a sequence of steps where *each LLM call
+processes the output of the previous one*. The order of steps is fixed in code —
+that's what makes it a workflow, not an agent.
 
-    generate draft  →  GATE (length check)  →  polish
+This mirrors the article's example ("generate marketing copy, then translate
+it") extended to three links. Each step produces a genuinely different artifact
+and hands it to the next:
 
-The "gate" is plain Python that decides whether the chain continues. If the
-draft is too long, we stop early rather than spend a call polishing it.
+    brief → [1: write copy] → [2: translate] → [3: shorten to a post] → output
 
 Run it:
     pip install anthropic
@@ -21,75 +24,63 @@ MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 
 
-def complete(prompt: str, system: str | None = None, max_tokens: int = 2048) -> str:
-    """Send a single prompt and return Claude's text response.
-
-    The "augmented LLM call" reduced to a function we can compose into a chain.
-    """
-    kwargs: dict = {
-        "model": MODEL,
-        "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    if system is not None:
-        kwargs["system"] = system
-    response = client.messages.create(**kwargs)
+def complete(prompt: str, max_tokens: int = 1024) -> str:
+    """Send one prompt and return Claude's text — a single link in the chain."""
+    response = client.messages.create(
+        model=MODEL,
+        max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}],
+    )
     return "".join(b.text for b in response.content if b.type == "text")
 
 
-MAX_DRAFT_WORDS = 80  # the gate's threshold
+# --- Each step is one LLM call that transforms the previous step's output ---
 
 
-def step_generate(topic: str) -> str:
-    """Step 1: produce a first-draft blurb from the topic."""
+def write_copy(brief: str) -> str:
+    """Step 1: product brief → English marketing blurb."""
     return complete(
-        f"Write a short marketing blurb (3-4 sentences) for: {topic}. "
-        "Plain prose, no headings."
+        "Write a vivid 2-3 sentence marketing blurb for this product. "
+        f"Return only the blurb.\n\nProduct: {brief}"
     )
 
 
-def gate_length_ok(draft: str) -> bool:
-    """The gate: a programmatic check between steps.
-
-    Returns True if the draft is within budget. A real gate might check for
-    required sections, banned words, or call another LLM to score quality.
-    """
-    word_count = len(draft.split())
-    print(f"  [gate] draft is {word_count} words (limit {MAX_DRAFT_WORDS})")
-    return word_count <= MAX_DRAFT_WORDS
-
-
-def step_polish(draft: str) -> str:
-    """Step 3: refine the approved draft into punchy final copy."""
+def translate(blurb: str) -> str:
+    """Step 2: English blurb → Spanish (takes step 1's output)."""
     return complete(
-        "Rewrite this marketing blurb to be punchier and more vivid, keeping it "
-        f"roughly the same length:\n\n{draft}"
+        "Translate this marketing blurb into natural, fluent Spanish. "
+        f"Return only the translation.\n\n{blurb}"
     )
 
 
-def run_chain(topic: str) -> str | None:
-    """Run the full chain. Returns None if the gate stops it."""
-    print("Step 1 — generate draft")
-    draft = step_generate(topic)
-    print(f"  {draft}\n")
+def shorten_to_post(spanish_blurb: str) -> str:
+    """Step 3: Spanish blurb → short social post (takes step 2's output)."""
+    return complete(
+        "Rewrite this as a social media post under 200 characters, ending with "
+        f"two relevant hashtags. Return only the post.\n\n{spanish_blurb}"
+    )
 
-    print("Step 2 — gate")
-    if not gate_length_ok(draft):
-        print("  [gate] FAILED — stopping the chain early.\n")
-        return None
-    print("  [gate] passed.\n")
 
-    print("Step 3 — polish")
-    final = step_polish(draft)
-    print(f"  {final}\n")
-    return final
+def run_chain(brief: str) -> str:
+    """Run the chain. The output of each step is the input to the next."""
+    print("Step 1 — write copy (brief → English blurb)")
+    blurb = write_copy(brief)
+    print(f"  {blurb}\n")
+
+    print("Step 2 — translate (English blurb → Spanish)")
+    spanish = translate(blurb)
+    print(f"  {spanish}\n")
+
+    print("Step 3 — shorten (Spanish blurb → social post)")
+    post = shorten_to_post(spanish)
+    print(f"  {post}\n")
+
+    return post
 
 
 if __name__ == "__main__":
-    topic = "a noise-cancelling travel mug that keeps coffee hot for 6 hours"
-    print(f"Topic: {topic}\n")
-
-    result = run_chain(topic)
-
-    print("--- result ---")
-    print(result if result is not None else "(chain halted at the gate)")
+    brief = "a noise-cancelling travel mug that keeps coffee hot for 6 hours"
+    print(f"Brief: {brief}\n")
+    result = run_chain(brief)
+    print("--- final output ---")
+    print(result)
