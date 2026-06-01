@@ -48,9 +48,10 @@ STEPS = [
     {"name": "copy edit", "prompt": "Copy edit this document:\n{input}"},
 ]
 
-text = topic
-for step in STEPS:
-    text = ask(step["prompt"].format(input=text))   # each output feeds the next
+def run(steps, text):
+    for step in steps:
+        text = ask(step["prompt"].format(input=text))   # each output feeds the next
+    return text
 ```
 
 For the default topic, the three links produce:
