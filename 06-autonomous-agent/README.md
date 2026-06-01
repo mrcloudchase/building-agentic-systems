@@ -43,16 +43,28 @@ desktop.
 
 ## Example
 
-[`autonomous_agent.py`](./autonomous_agent.py) is a minimal coding agent in the
-spirit of [Quark](https://github.com/averagejoeslab/quark): one loop, one
-**bash** tool, the model drives. There's no built-in task — it's an interactive
-REPL. You type a request, and the agent uses bash to carry it out (inspect the
-project, read/write files, run commands), feeding the real command output back to
-itself at each step until the request is done. The conversation history is its
-memory across turns.
+[`autonomous_agent.py`](./autonomous_agent.py) is a coding agent in **under 15
+lines of code** — one loop, one `bash` tool, the model drives (in the spirit of
+[Quark](https://github.com/averagejoeslab/quark)). It's an interactive REPL: you
+type a request, the agent runs bash commands to carry it out and feeds the output
+back to itself until it's done. The conversation history is its memory. That's
+the whole pattern — no task-specific scaffolding:
 
-The whole agent is the loop in `agent_turn()` plus a single `bash` tool — no
-task-specific scaffolding.
+```python
+import subprocess, anthropic
+client = anthropic.Anthropic()
+TOOLS = [{"name": "bash", "description": "Run a bash command.", "input_schema": {...}}]
+def sh(cmd): return subprocess.run(cmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+messages = []
+while True:
+    messages.append({"role": "user", "content": input("\nyou> ")})
+    while True:
+        r = client.messages.create(model="claude-opus-4-8", max_tokens=4096, tools=TOOLS, messages=messages)
+        messages.append({"role": "assistant", "content": r.content})
+        print("".join(b.text for b in r.content if b.type == "text"))
+        if r.stop_reason != "tool_use": break
+        messages.append({"role": "user", "content": [{"type": "tool_result", "tool_use_id": b.id, "content": sh(b.input["command"])} for b in r.content if b.type == "tool_use"]})
+```
 
 ```bash
 python 06-autonomous-agent/autonomous_agent.py
