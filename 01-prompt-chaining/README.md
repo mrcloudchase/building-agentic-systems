@@ -12,16 +12,12 @@ sequence of steps, and the output of each step becomes the input to the next:
 input → [LLM call 1] → [LLM call 2] → [LLM call 3] → output
 ```
 
-The defining property is that **handoff** — each call works on whatever the
-previous call produced. Because *you* fix the order of steps in code, this is a
-**workflow**, not an agent: nothing is decided at runtime.
-
-## What it does
-
-Each step is one LLM call that transforms the previous result into something new
-— so a chain turns a hard, all-at-once task into a series of easier ones.
-Optionally, you can put a **gate** between steps — a programmatic check that
-stops the chain if an intermediate result is bad, so it doesn't flow downstream.
+The defining property is that **handoff** — each call transforms whatever the
+previous call produced into something new, turning one hard all-at-once task into
+a series of easier ones. Because *you* fix the order of steps in code, this is a
+**workflow**, not an agent: nothing is decided at runtime. (You can optionally
+put a **gate** between steps — a programmatic check that stops the chain if an
+intermediate result is bad.)
 
 ## When to use it
 

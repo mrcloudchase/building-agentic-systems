@@ -14,22 +14,16 @@ task → [orchestrator] ─→ [worker] ─┼─→ [synthesize] → output
                   └─→ [worker] ─┘
 ```
 
-It's still a **workflow**, but the most dynamic one. The difference from
+Three jobs, always the same whatever the task: **decompose** (split into
+subtasks — *this is the plan*, produced at runtime), **delegate** (hand each
+subtask to a worker), **synthesize** (merge the results into one output). It's
+still a **workflow**, but the most dynamic one. The difference from
 parallelization is **who decides the subtasks**:
 
 | | Parallelization (03) | Orchestrator-Workers (04) |
 |--|----------------------|---------------------------|
 | Subtasks | **fixed by you** in code | **chosen by the model** at runtime |
 | Shape | same every run | adapts to the input |
-
-## What it does
-
-Three jobs, always the same whatever the task:
-
-1. **Decompose** — the orchestrator splits the task into subtasks. *This is the
-   plan*, produced at runtime from the input.
-2. **Delegate** — each subtask is handed to a worker that does it.
-3. **Synthesize** — the orchestrator merges the workers' results into one output.
 
 ## When to use it
 
@@ -54,14 +48,10 @@ gather and combine information from multiple sources chosen on the fly.
 
 Because the decomposition is model-driven, the code isn't tied to one task.
 [`orchestrator_workers.py`](./orchestrator_workers.py) is a reusable `run(task)`
-made of three small functions — one per job above:
-
-1. **`orchestrate(task)`** — returns a JSON list of subtasks chosen for this
-   prompt.
-2. **`work(task, subtask)`** — one worker completes each subtask, run in
-   parallel.
-3. **`synthesize(...)`** — combines the workers' outputs into one cohesive
-   result.
+made of three small functions — one per job above: `orchestrate(task)` returns a
+JSON list of subtasks chosen for this prompt, `work(task, subtask)` completes
+each subtask in parallel, and `synthesize(...)` combines the outputs into one
+cohesive result.
 
 Pass any prompt and the workflow reshapes itself to it:
 

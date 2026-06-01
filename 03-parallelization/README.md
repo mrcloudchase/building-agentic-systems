@@ -13,18 +13,15 @@ input ──┼─→ [call] ─┼─→ aggregate → output
         └─→ [call] ─┘
 ```
 
-It's a **workflow**: the structure is fixed in advance. The article describes
-two shapes — **sectioning** (split into independent subtasks) and **voting** (run
-the same task several times).
-
-## What it does
+It's a **workflow**: the structure is fixed in advance. The article describes two
+shapes:
 
 - **Sectioning** — break a task into independent subtasks, run them in parallel,
-  and stitch the pieces together. Independent pieces finish in the time of the
+  stitch the pieces together. Independent pieces finish in the time of the
   slowest one, and each call gets a narrow, focused job.
 - **Voting** — run the same task several times and combine the answers (majority,
-  unanimity, or "flag if any"). Multiple independent attempts give you a
-  confidence signal and a tunable decision rule.
+  unanimity, or "flag if any"). Multiple independent attempts give a confidence
+  signal and a tunable decision rule.
 
 ## When to use it
 

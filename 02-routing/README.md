@@ -4,9 +4,10 @@
 
 ## What it is
 
-Routing has two phases: **classify, then dispatch.** A first step decides *what
-kind* of request came in; based on that label, you send it down a path — a
-prompt, a model, or a toolset — built for exactly that category:
+Routing has two phases: **classify, then dispatch.** A first step (an LLM, a
+smaller model, or even plain rules) decides *what kind* of request came in and
+assigns it a label; that label selects one specialized path — a prompt, a model,
+or a toolset — and only that path runs:
 
 ```
                  ┌─→ [handler A]
@@ -14,15 +15,10 @@ input → [router] ─┼─→ [handler B]
                  └─→ [handler C]
 ```
 
-It's a **workflow**, not an agent: the routes are all predefined. The only thing
-decided at runtime is *which* fixed path runs — not what the paths are.
-
-## What it does
-
-A classifier (an LLM, a smaller model, or even plain rules) assigns the input a
-label. The label selects one specialized handler, and only that handler runs.
-Because the handlers are separate, you can tune one without affecting the others
-— optimizing the billing path can't degrade the technical path.
+It's a **workflow**, not an agent: the routes are all predefined, and the only
+thing decided at runtime is *which* fixed path runs. Because the handlers are
+separate, you can tune one without affecting the others — optimizing the billing
+path can't degrade the technical path.
 
 ## When to use it
 

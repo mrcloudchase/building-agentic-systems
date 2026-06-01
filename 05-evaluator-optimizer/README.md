@@ -4,13 +4,10 @@
 
 ## What it is
 
-Two LLM roles work in a feedback loop:
-
-- the **optimizer** (generator) produces a candidate response, and
-- the **evaluator** judges it against criteria and returns specific feedback.
-
-The optimizer revises using that feedback, the evaluator judges again, and the
-loop repeats until the evaluator is satisfied (or you hit a retry limit):
+Two roles work in a feedback loop. The **optimizer** produces a candidate; the
+**evaluator** judges it against criteria and returns specific feedback; the
+optimizer revises; repeat until the evaluator is satisfied (or you hit a retry
+limit):
 
 ```
             ┌──────────────────────────────────┐
@@ -21,49 +18,41 @@ task → [optimizer] → draft → [evaluator] → PASS? ─ no, here's feedback
 ```
 
 It's a **workflow**: the two-role loop is fixed, even though the number of
-iterations varies.
-
-## Why split generation from evaluation?
-
-The same reason a writer benefits from an editor: it's easier to *critique* a
-concrete draft than to produce a perfect one in one shot. Separating the roles
-lets the evaluator hold a clear standard and point at specific gaps, while the
-optimizer focuses on addressing them. The article notes this works best when
-
-- you have **clear evaluation criteria**, and
-- **iterative refinement measurably helps** — especially when a human giving the
-  same kind of feedback would improve the result.
-
-## What the example does
-
-[`evaluator_optimizer.py`](./evaluator_optimizer.py) writes a product tagline
-that must satisfy explicit constraints (short, mentions a benefit, no clichés).
-
-- The **optimizer** writes a tagline (and revises it on later rounds using the
-  feedback).
-- The **evaluator** returns a structured verdict — `PASS` or `FAIL` plus
-  concrete feedback.
-- The loop runs until `PASS` or a maximum number of rounds.
-
-You'll see the tagline visibly improve as the evaluator's notes get folded in.
+iterations varies. Splitting generation from evaluation works because it's easier
+to *critique* a concrete draft than to produce a perfect one in one shot — same
+reason a writer benefits from an editor.
 
 ## When to use it
 
-Reach for evaluator-optimizer when:
+Reach for evaluator-optimizer when you can articulate **clear evaluation
+criteria** and **iteration measurably improves quality** — especially when a
+human giving the same kind of feedback would help. Always cap the iterations
+(a max-rounds limit plus the evaluator's PASS) so the loop has a guaranteed
+terminal state and can't burn unbounded tokens.
 
-- you can articulate **clear criteria** for a good answer, and
-- **iteration improves quality** — the first draft is rarely the best, and
-  targeted feedback closes the gap.
+If a single pass is good enough, don't add the loop — it costs extra calls.
 
 **Examples from the article:** literary translation, where an evaluator can catch
-nuances the first pass missed; multi-round research tasks that need several
-cycles of searching and refining before the answer is complete.
+nuances the first pass missed; multi-round research that needs several cycles of
+searching and refining before the answer is complete.
 
-## Don't loop forever
+## Example
 
-Always cap the iterations. Without a stopping condition you can burn unbounded
-tokens — or get stuck oscillating. A max-rounds limit (plus the evaluator's
-`PASS`) gives the loop a guaranteed terminal state.
+[`evaluator_optimizer.py`](./evaluator_optimizer.py) writes a product tagline
+that must satisfy explicit constraints (at most 8 words, names a concrete
+benefit, no clichés):
+
+- The **optimizer** writes a tagline, and on later rounds revises it using the
+  feedback.
+- The **evaluator** returns a structured verdict — `PASS`, or `FAIL` plus one
+  line of specific feedback.
+- The loop runs until `PASS` or `MAX_ROUNDS`.
+
+You'll see the tagline visibly improve as the evaluator's notes get folded in.
+
+```bash
+python 05-evaluator-optimizer/evaluator_optimizer.py
+```
 
 ➡️ **Next:** [06 · Autonomous Agent](../06-autonomous-agent/) — hand the control
 flow to the model itself.
