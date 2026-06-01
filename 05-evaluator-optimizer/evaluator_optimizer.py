@@ -4,15 +4,19 @@ Two roles in a feedback loop: the optimizer writes a candidate, the evaluator
 judges it against criteria and returns feedback, the optimizer revises. Repeat
 until the evaluator says PASS or we hit the round limit.
 
-    [optimizer writes] → [evaluator judges] → PASS? → done
-          ▲                                      │
-          └──────────── feedback ────────────────┘
+    [write copy] → [compliance review] → PASS? → done
+          ▲                                 │
+          └────────── feedback ─────────────┘
 
-Run it (pass a brief, or use the default):
+Business use case: compliant marketing copy. The copy must meet a compliance +
+quality rubric (required disclaimer, no prohibited claims, length, clear CTA);
+the loop revises until it passes.
+
+Run it (pass an offer, or use the default):
     pip install anthropic
     export ANTHROPIC_API_KEY="sk-ant-..."
     python 05-evaluator-optimizer/evaluator_optimizer.py
-    python 05-evaluator-optimizer/evaluator_optimizer.py "a budget travel backpack"
+    python 05-evaluator-optimizer/evaluator_optimizer.py "a no-fee checking account"
 """
 
 import os
@@ -23,14 +27,15 @@ import anthropic
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
-DEFAULT_INPUT = "a reusable water bottle that filters tap water as you drink"
+DEFAULT_INPUT = "a high-yield savings account offering 4.5% APY"
 
-# Loop config: how many rounds to allow, and what "good" means.
+# Loop config: how many rounds to allow, and what "compliant" means.
 MAX_ROUNDS = 4
 CRITERIA = (
-    "1) at most 8 words; "
-    "2) names a concrete user benefit; "
-    "3) contains no clichés like 'game-changer', 'next-level', or 'revolutionary'."
+    "1) under 30 words; "
+    "2) includes the exact disclaimer 'APY is variable and subject to change.'; "
+    "3) makes no guaranteed-return, 'risk-free', or 'best' claims; "
+    "4) ends with a clear call to action."
 )
 
 
@@ -44,27 +49,28 @@ def ask(prompt: str, max_tokens: int = 256) -> str:
     return msg.content[0].text
 
 
-def optimize(brief: str, previous: str | None, feedback: str | None) -> str:
-    """Generate (or revise) a tagline for the brief."""
+def optimize(offer: str, previous: str | None, feedback: str | None) -> str:
+    """Generate (or revise) the marketing copy for the offer."""
     if previous is None:
-        prompt = f"Write a product tagline.\n\nBrief: {brief}\n\nReturn only the tagline."
+        prompt = f"Write a short marketing blurb for this offer.\n\nOffer: {offer}\n\nReturn only the blurb."
     else:
         prompt = (
-            f"Brief: {brief}\n\n"
-            f"Your previous tagline: {previous}\n\n"
-            f"An editor's feedback: {feedback}\n\n"
-            "Write an improved tagline addressing the feedback. Return only the tagline."
+            f"Offer: {offer}\n\n"
+            f"Your previous blurb: {previous}\n\n"
+            f"A compliance reviewer's feedback: {feedback}\n\n"
+            "Rewrite the blurb to address the feedback. Return only the blurb."
         )
     return ask(prompt).strip().strip('"')
 
 
-def evaluate(brief: str, tagline: str) -> tuple[bool, str]:
-    """Judge the tagline against CRITERIA. Returns (passed, feedback)."""
+def evaluate(offer: str, copy: str) -> tuple[bool, str]:
+    """Judge the copy against CRITERIA. Returns (passed, feedback)."""
     verdict = ask(
-        "You are a strict tagline editor. Judge this tagline against the criteria.\n\n"
-        f"Brief: {brief}\n"
+        "You are a strict marketing-compliance reviewer. Judge this copy against "
+        "the criteria.\n\n"
+        f"Offer: {offer}\n"
         f"Criteria: {CRITERIA}\n"
-        f'Tagline: "{tagline}"\n\n'
+        f'Copy: "{copy}"\n\n'
         "Respond on a single line as either:\n"
         "  PASS\n"
         "  FAIL: <one sentence of specific, actionable feedback>"
@@ -74,28 +80,28 @@ def evaluate(brief: str, tagline: str) -> tuple[bool, str]:
     return passed, feedback
 
 
-def run(brief: str) -> str:
+def run(offer: str) -> str:
     """Loop: optimize, evaluate, repeat until PASS or MAX_ROUNDS."""
-    tagline: str | None = None
+    copy: str | None = None
     feedback: str | None = None
 
     for round_num in range(1, MAX_ROUNDS + 1):
-        tagline = optimize(brief, tagline, feedback)
-        print(f"Round {round_num} — optimizer: {tagline!r}")
+        copy = optimize(offer, copy, feedback)
+        print(f"Round {round_num} — copywriter: {copy!r}")
 
-        passed, feedback = evaluate(brief, tagline)
+        passed, feedback = evaluate(offer, copy)
         if passed:
-            print(f"Round {round_num} — evaluator: PASS\n")
-            return tagline
-        print(f"Round {round_num} — evaluator: FAIL — {feedback}\n")
+            print(f"Round {round_num} — compliance: PASS\n")
+            return copy
+        print(f"Round {round_num} — compliance: FAIL — {feedback}\n")
 
     print("Hit the round limit; returning best effort.\n")
-    return tagline or ""
+    return copy or ""
 
 
 if __name__ == "__main__":
-    brief = " ".join(sys.argv[1:]) or DEFAULT_INPUT
-    print(f"Brief: {brief}\n")
-    final = run(brief)
-    print("--- final tagline ---")
+    offer = " ".join(sys.argv[1:]) or DEFAULT_INPUT
+    print(f"Offer: {offer}\n")
+    final = run(offer)
+    print("--- final copy ---")
     print(final)

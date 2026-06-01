@@ -37,15 +37,16 @@ cost and latency.
 
 ## Example
 
-[`routing.py`](./routing.py) is a support-triage demo. The routes are **data** —
-a dict of category → specialized system prompt — and `route()` is two calls:
+[`routing.py`](./routing.py) triages a shared inbox. The routes are **data** — a
+dict of category → specialized system prompt — and `route()` is two calls:
 classify, then dispatch.
 
 ```python
 ROUTES = {
+    "sales":     "You are a sales rep...",
     "billing":   "You are a billing specialist...",
     "technical": "You are a support engineer...",
-    "general":   "You are a friendly support agent...",
+    "careers":   "You are a recruiter...",
 }
 
 def route(routes, message):
@@ -54,21 +55,22 @@ def route(routes, message):
     return ask(message, system=routes[category])   # dispatch to the chosen route
 ```
 
-So different messages take different paths:
+So different emails take different paths:
 
-| Message | Route |
-|---------|-------|
-| "I was double-charged — can I get a refund?" | `billing` |
-| "The app crashes when I upload a photo." | `technical` |
-| "What are your support hours?" | `general` |
+| Email | Route |
+|-------|-------|
+| "Could we set up a demo and talk enterprise pricing?" | `sales` |
+| "My invoice looks higher than last month." | `billing` |
+| "The export button returns a 500 error." | `technical` |
+| "I'd love to apply for the backend role." | `careers` |
 
 The classifier's labels come straight from the `ROUTES` keys, so adding a
 category updates the routing automatically (with a fallback to the first route if
-the model returns something unexpected). It runs on any message:
+the model returns something unexpected). It runs on any email:
 
 ```bash
-python 02-routing/routing.py "The app crashes when I upload a photo"
-# no argument → default: a billing question
+python 02-routing/routing.py "The export button returns a 500 error."
+# no argument → default: a sales inquiry
 ```
 
 ➡️ **Next:** [03 · Parallelization](../03-parallelization/) — run multiple calls at

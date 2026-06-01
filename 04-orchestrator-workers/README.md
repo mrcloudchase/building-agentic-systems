@@ -46,31 +46,30 @@ gather and combine information from multiple sources chosen on the fly.
 
 ## Example
 
-Because the decomposition is model-driven, the code isn't tied to one task.
-[`orchestrator_workers.py`](./orchestrator_workers.py) is a reusable `run(task)`
-made of three small functions — one per job above: `orchestrate(task)` returns a
-JSON list of subtasks chosen for this prompt, `work(task, subtask)` completes
-each subtask in parallel, and `synthesize(...)` combines the outputs into one
-cohesive result.
+[`orchestrator_workers.py`](./orchestrator_workers.py) produces a market /
+due-diligence research brief. Because the decomposition is model-driven, the code
+isn't tied to one request — it's a reusable `run(request)` made of three small
+functions, one per job above: `orchestrate(request)` returns a JSON list of
+research angles chosen for this request, `work(request, angle)` researches each
+angle in parallel, and `synthesize(...)` combines them into one brief.
 
-Pass any prompt and the workflow reshapes itself to it:
+Pass any request and the workflow reshapes itself to it:
 
 ```bash
-python 04-orchestrator-workers/orchestrator_workers.py "Plan a 3-day trip to Tokyo"
-python 04-orchestrator-workers/orchestrator_workers.py "Outline a course on databases"
-# no argument → default: "Write a practical guide to starting a podcast."
+python 04-orchestrator-workers/orchestrator_workers.py "Diligence on a B2B payroll startup"
+# no argument → default: market opportunity for an AI meal-planning app
 ```
 
-For the prompt *"Add rate limiting to a REST API,"* the three jobs play out as:
+For the default request, the three jobs play out as:
 
-- **Decompose** → `["pick an algorithm (token bucket)", "add a Redis store",
-  "write the middleware", "return 429s with retry headers", "add tests"]` — this
-  list *is* the plan.
-- **Delegate** → each subtask is fleshed out by its own worker, in parallel.
-- **Synthesize** → the outputs are merged into one ordered implementation plan.
+- **Decompose** → research angles like `["market size & growth", "target
+  customers", "competitive landscape", "key risks"]` — this list *is* the plan,
+  chosen at runtime.
+- **Delegate** → each angle is researched by its own worker, in parallel.
+- **Synthesize** → the sections are merged into one brief with an executive
+  summary.
 
-Swap the prompt for *"Plan a 3-day trip to Tokyo"* and the plan becomes
-`["day-by-day itinerary", "budget", "getting around", "where to eat"]` — same
+Swap the request for a diligence prompt and the angles change to fit it — same
 machinery, decomposition driven entirely by the input.
 
 ➡️ **Next:** [05 · Evaluator-Optimizer](../05-evaluator-optimizer/) — improve a

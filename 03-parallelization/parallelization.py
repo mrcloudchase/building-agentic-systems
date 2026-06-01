@@ -5,10 +5,11 @@ Run several LLM calls at the same time, then combine the results. Two shapes:
   * SECTIONING — split a task into independent parts, run them in parallel.
   * VOTING     — run the SAME task several times, then combine the answers.
 
-Here we review one code snippet: sectioning checks different concerns at once;
-voting runs the same vulnerability check several times.
+Business use case: contract review. Sectioning reviews the contract on several
+independent concerns at once; voting runs a high-risk check several times and
+escalates to legal if any reviewer objects.
 
-Run it (pass a code snippet, or use the default):
+Run it (pass a contract excerpt, or use the default):
     pip install anthropic
     export ANTHROPIC_API_KEY="sk-ant-..."
     python 03-parallelization/parallelization.py
@@ -23,18 +24,19 @@ import anthropic
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
-# The default input — a snippet with a SQL-injection hole, an inefficient loop,
-# and unclear names, so each sectioning reviewer finds something different.
-DEFAULT_INPUT = '''def get_user(db, user_id):
-    q = "SELECT * FROM users WHERE id = '" + user_id + "'"
-    rows = db.execute(q)
-    result = []
-    for r in rows:
-        result = result + [r]
-    return result'''
+# The default input — a contract excerpt with an auto-renewal trap, a tight
+# liability cap, a jury-trial waiver, and unilateral price changes, so each
+# reviewer finds something different.
+DEFAULT_INPUT = (
+    "This Agreement renews automatically for successive 12-month terms unless "
+    "Customer gives written notice at least 90 days before renewal. Vendor's "
+    "total liability is limited to the fees paid in the month before any claim. "
+    "Customer waives any right to a jury trial. Vendor may change pricing at any "
+    "time on 15 days' notice."
+)
 
 # Sectioning concerns, defined as data — one independent review each.
-ASPECTS = ["security", "performance", "readability"]
+ASPECTS = ["payment & renewal terms", "liability & risk", "missing standard clauses"]
 
 
 def ask(prompt: str) -> str:
@@ -47,9 +49,9 @@ def ask(prompt: str) -> str:
     return msg.content[0].text
 
 
-def section(aspects: list[str], code: str) -> dict[str, str]:
-    """SECTIONING: review the code for each aspect, all in parallel."""
-    prompts = [f"Review this code for {a} issues only. Be brief.\n\n{code}" for a in aspects]
+def section(aspects: list[str], text: str) -> dict[str, str]:
+    """SECTIONING: review the contract for each aspect, all in parallel."""
+    prompts = [f"Review this contract for {a} only. Be brief.\n\n{text}" for a in aspects]
     with ThreadPoolExecutor() as pool:
         reviews = pool.map(ask, prompts)  # keeps order
     return dict(zip(aspects, reviews))
@@ -62,16 +64,17 @@ def vote(prompt: str, n: int = 3) -> list[str]:
 
 
 if __name__ == "__main__":
-    code = " ".join(sys.argv[1:]) or DEFAULT_INPUT
+    contract = " ".join(sys.argv[1:]) or DEFAULT_INPUT
 
-    print("=== SECTIONING (different concerns in parallel) ===")
-    for aspect, review in section(ASPECTS, code).items():
+    print("=== SECTIONING (review concerns in parallel) ===")
+    for aspect, review in section(ASPECTS, contract).items():
         print(f"## {aspect}\n{review}\n")
 
-    print("=== VOTING (same vulnerability check x3) ===")
+    print("=== VOTING (high-risk check x3) ===")
     votes = vote(
-        f"Does this code contain a security vulnerability? Answer only YES or NO.\n\n{code}"
+        "Does this contract contain any clause that is high-risk or non-standard "
+        f"and needs legal review? Answer only YES or NO.\n\n{contract}"
     )
     flagged = any(v.strip().upper().startswith("YES") for v in votes)
     print(f"votes: {votes}")
-    print(f"decision: {'FLAG FOR REVIEW' if flagged else 'looks clean'}")
+    print(f"decision: {'ESCALATE TO LEGAL' if flagged else 'looks standard'}")

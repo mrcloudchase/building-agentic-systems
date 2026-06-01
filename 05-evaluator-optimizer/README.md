@@ -38,22 +38,23 @@ searching and refining before the answer is complete.
 
 ## Example
 
-[`evaluator_optimizer.py`](./evaluator_optimizer.py) writes a product tagline
-that must satisfy explicit constraints (at most 8 words, names a concrete
-benefit, no clichés):
+[`evaluator_optimizer.py`](./evaluator_optimizer.py) writes marketing copy for a
+financial offer that must satisfy a compliance + quality rubric (under 30 words,
+includes the required APY disclaimer, makes no prohibited claims, ends with a
+clear CTA):
 
-- The **optimizer** writes a tagline, and on later rounds revises it using the
-  feedback.
-- The **evaluator** returns a structured verdict — `PASS`, or `FAIL` plus one
-  line of specific feedback.
+- The **optimizer** (copywriter) writes the blurb, and on later rounds revises it
+  using the feedback.
+- The **evaluator** (compliance reviewer) returns a structured verdict — `PASS`,
+  or `FAIL` plus one line of specific feedback.
 - The loop runs until `PASS` or `MAX_ROUNDS`.
 
-You'll see the tagline visibly improve as the evaluator's notes get folded in.
-It runs on any brief:
+You'll see the copy converge on the rubric as the reviewer's notes get folded in
+(the missing disclaimer is the usual first failure). It runs on any offer:
 
 ```bash
-python 05-evaluator-optimizer/evaluator_optimizer.py "a budget travel backpack"
-# no argument → default: a water-filtering bottle brief
+python 05-evaluator-optimizer/evaluator_optimizer.py "a no-fee checking account"
+# no argument → default: a 4.5% APY savings account
 ```
 
 ➡️ **Next:** [06 · Autonomous Agent](../06-autonomous-agent/) — hand the control

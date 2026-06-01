@@ -40,15 +40,16 @@ problem.
 
 ## Example
 
-[`parallelization.py`](./parallelization.py) reviews one code snippet — which
-has a SQL-injection hole, an inefficient loop, and unclear names. Two small
-functions, each fanning calls out with a thread pool:
+[`parallelization.py`](./parallelization.py) reviews a contract excerpt — which
+has an auto-renewal trap, a tight liability cap, a jury-trial waiver, and
+unilateral price changes. Two small functions, each fanning calls out with a
+thread pool:
 
 ```python
-ASPECTS = ["security", "performance", "readability"]
+ASPECTS = ["payment & renewal terms", "liability & risk", "missing standard clauses"]
 
-def section(aspects, code):                      # run different reviews at once
-    prompts = [f"Review for {a} issues:\n{code}" for a in aspects]
+def section(aspects, text):                      # run different reviews at once
+    prompts = [f"Review this contract for {a}:\n{text}" for a in aspects]
     with ThreadPoolExecutor() as pool:
         return dict(zip(aspects, pool.map(ask, prompts)))
 
@@ -57,12 +58,12 @@ def vote(prompt, n=3):                            # run the same check n times
         return list(pool.map(lambda _: ask(prompt), range(n)))
 ```
 
-- **Sectioning** — `section(ASPECTS, code)` reviews the code for each concern in
-  parallel, so each reviewer finds something different.
-- **Voting** — `vote(...)` asks "is there a vulnerability?" three times and flags
-  the code if *any* of the three says yes.
+- **Sectioning** — `section(ASPECTS, contract)` reviews the contract on each
+  concern in parallel, so each reviewer finds something different.
+- **Voting** — `vote(...)` asks "is there a high-risk clause?" three times and
+  escalates to legal if *any* of the three says yes.
 
-It runs on any snippet (the default is the flawed one above):
+It runs on any contract excerpt (the default is the risky one above):
 
 ```bash
 python 03-parallelization/parallelization.py

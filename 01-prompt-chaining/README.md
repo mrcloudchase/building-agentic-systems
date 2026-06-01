@@ -37,15 +37,15 @@ it into another language.
 
 ## Example
 
-[`prompt_chaining.py`](./prompt_chaining.py) defines the chain as **data** — a
-list of steps — and loops over it, feeding each step's output into the next via
-an `{input}` placeholder. The chain itself is just the `STEPS` list:
+[`prompt_chaining.py`](./prompt_chaining.py) turns a raw customer support ticket
+into a polished, on-brand reply. The chain is **data** — a list of steps — and a
+loop feeds each step's output into the next via an `{input}` placeholder:
 
 ```python
 STEPS = [
-    {"name": "outline",   "prompt": "Write a numbered outline for: {input}"},
-    {"name": "write",     "prompt": "Write the full how-to doc from this outline:\n{input}"},
-    {"name": "copy edit", "prompt": "Copy edit this document:\n{input}"},
+    {"name": "extract", "prompt": "Extract the issue and key facts:\n{input}"},
+    {"name": "draft",   "prompt": "Draft a reply addressing these points:\n{input}"},
+    {"name": "polish",  "prompt": "Rewrite in brand voice:\n{input}"},
 ]
 
 def run(steps, text):
@@ -54,24 +54,23 @@ def run(steps, text):
     return text
 ```
 
-For the default topic, the three links produce:
-
 | Step | Input | Output |
 |------|-------|--------|
-| outline | the topic | a numbered outline of the steps |
-| write | the outline | the full how-to doc |
-| copy edit | the doc | a polished final doc |
+| extract | the raw ticket | the issue + key facts (order #, dates, the ask) |
+| draft | those facts | a first-draft reply |
+| polish | the draft | a concise, on-brand final reply |
 
 To change the chain — add, remove, or reorder steps — you edit `STEPS`; the loop
-never changes. It runs for any topic:
+never changes. It runs on any ticket:
 
 ```bash
-python 01-prompt-chaining/prompt_chaining.py "how to deploy a Django app to AWS"
-# no argument → default: "how to build and train a GPT-3-style LLM"
+python 01-prompt-chaining/prompt_chaining.py "My invoice looks wrong this month."
+# no argument → default: a delayed-order ticket
 ```
 
 You can add a **gate** by checking a step's output inside the loop before
-continuing — for example, stopping if the outline came back empty.
+continuing — for example, escalating to a human if the extracted facts mention a
+chargeback or legal threat.
 
 ➡️ **Next:** [02 · Routing](../02-routing/) — pick a specialized path based on the
 input instead of running a fixed sequence.

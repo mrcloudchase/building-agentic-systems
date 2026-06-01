@@ -43,15 +43,17 @@ desktop.
 
 ## Example
 
-[`autonomous_agent.py`](./autonomous_agent.py) is a small file-system agent
-working in a gitignored `sandbox/` directory. It's given three tools —
-`list_files`, `read_file`, `write_file` — and a goal (create a greeting file,
-then a summary file describing what it did).
+[`autonomous_agent.py`](./autonomous_agent.py) is a software-engineering agent.
+At startup it seeds a gitignored `sandbox/` with a stub function
+(`string_utils.py`) and a failing test (`test_string_utils.py`), then gives the
+agent four tools — `list_files`, `read_file`, `write_file`, and `run_tests` — and
+one goal: make the tests pass.
 
-The agent chooses the sequence of tool calls entirely on its own, looping until
-it stops requesting tools (`stop_reason == "end_turn"`), with a hard
-`MAX_ITERATIONS` cap as the safety stop. Every tool call is printed so you can
-follow its reasoning.
+The agent drives the loop itself — read the test, write an implementation, run
+the tests, read the failure, fix it — using the real test output as **ground
+truth** at each step. It loops until the tests pass (it stops on its own) or hits
+the `MAX_ITERATIONS` cap. Every tool call is printed so you can follow its
+reasoning.
 
 ```bash
 python 06-autonomous-agent/autonomous_agent.py
