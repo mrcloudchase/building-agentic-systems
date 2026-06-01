@@ -1,14 +1,16 @@
 """03 · Parallelization — the simplest version.
 
 Run several LLM calls at the same time, then combine the results. The article
-describes two shapes, both shown here:
+describes two shapes, both shown here on a code-review task:
 
   * SECTIONING — split a task into independent parts, run them in parallel.
+                 (Review the snippet for security, performance, readability.)
   * VOTING     — run the SAME task several times, then combine the answers.
+                 (Ask "is there a vulnerability?" three times; flag if any say yes.)
 
-    input ─┬─→ [call] ─┐
-           ├─→ [call] ─┼─→ aggregate → output
-           └─→ [call] ─┘
+    code ─┬─→ [call] ─┐
+          ├─→ [call] ─┼─→ aggregate → output
+          └─→ [call] ─┘
 
 Run it:
     pip install anthropic
@@ -35,41 +37,48 @@ def ask(prompt: str) -> str:
     return msg.content[0].text
 
 
-# --- SECTIONING: independent subtasks, run concurrently --------------------
-# Three different questions about one idea — none depends on the others, so we
-# fire them all at once and collect the answers.
+# The snippet under review — it has a SQL-injection hole (security), builds a
+# list inefficiently (performance), and uses unclear names (readability), so the
+# three independent reviewers each have something different to find.
+CODE = '''def get_user(db, user_id):
+    q = "SELECT * FROM users WHERE id = '" + user_id + "'"
+    rows = db.execute(q)
+    result = []
+    for r in rows:
+        result = result + [r]
+    return result'''
 
-idea = "a subscription box that mails a new houseplant every month"
-sections = {
-    "market": f"In 2 sentences, estimate market demand for: {idea}",
-    "feasibility": f"In 2 sentences, assess how hard this is to build: {idea}",
-    "competition": f"In 2 sentences, describe the competition for: {idea}",
+
+# --- SECTIONING: independent reviews, run concurrently ---------------------
+# Each reviewer looks at the same code but for a different concern. The reviews
+# don't depend on each other, so we run them all at once.
+
+reviews = {
+    "security": f"Review this code for SECURITY issues only. Be brief.\n\n{CODE}",
+    "performance": f"Review this code for PERFORMANCE issues only. Be brief.\n\n{CODE}",
+    "readability": f"Review this code for READABILITY issues only. Be brief.\n\n{CODE}",
 }
 
 with ThreadPoolExecutor() as pool:
     # pool.map keeps order, so we can zip the answers back to their labels.
-    results = dict(zip(sections, pool.map(ask, sections.values())))
+    results = dict(zip(reviews, pool.map(ask, reviews.values())))
 
-print("=== SECTIONING ===")
-for name, text in results.items():
-    print(f"## {name}\n{text}\n")
+print("=== SECTIONING (review for different concerns in parallel) ===")
+for concern, review in results.items():
+    print(f"## {concern}\n{review}\n")
 
 
-# --- VOTING: the same task several times, then combine ----------------------
-# Run one yes/no judgment three times and require unanimity — a single objection
-# blocks publication.
+# --- VOTING: the same check several times, then combine --------------------
+# Ask the vulnerability question three times and flag the code if ANY reviewer
+# says yes — a conservative rule that errs toward catching problems.
 
-text = "Our new release is faster and more reliable than ever. Try it today!"
-vote_prompt = (
-    "Is this text safe to publish on a company blog? Answer only SAFE or UNSAFE."
-    f"\n\n{text}"
-)
+vote_prompt = f"Does this code contain a security vulnerability? Answer only YES or NO.\n\n{CODE}"
 
 with ThreadPoolExecutor() as pool:
     votes = list(pool.map(lambda _: ask(vote_prompt), range(3)))
 
-safe = all(v.strip().upper().startswith("SAFE") for v in votes)
+flagged = any(v.strip().upper().startswith("YES") for v in votes)
 
-print("=== VOTING ===")
+print("=== VOTING (same vulnerability check x3) ===")
 print(f"votes: {votes}")
-print(f"decision: {'PUBLISH' if safe else 'BLOCK'}")
+print(f"decision: {'FLAG FOR REVIEW' if flagged else 'looks clean'}")

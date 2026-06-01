@@ -23,14 +23,15 @@ Both are **workflows**: the structure is fixed in advance.
 
 ## What the example does
 
-[`parallelization.py`](./parallelization.py) shows both, using a thread pool to
-fire the calls concurrently:
+[`parallelization.py`](./parallelization.py) reviews one small code snippet,
+using a thread pool to fire the calls concurrently:
 
-- **Sectioning** — analyzes one product idea on three independent dimensions
-  (market, feasibility, competition) at the same time, then prints the combined
-  report.
-- **Voting** — asks "is this text safe to publish?" three times and requires all
-  three to agree; one objection blocks it.
+- **Sectioning** — three reviewers look at the same code for *different*
+  concerns (security, performance, readability) at the same time, then the
+  reviews are combined. The snippet has one flaw of each kind, so each reviewer
+  finds something different.
+- **Voting** — asks "does this code contain a vulnerability?" three times and
+  flags the code if *any* of the three says yes.
 
 The whole mechanic is `ThreadPoolExecutor` + `pool.map(ask, ...)` — fan the calls
 out, collect the results.
