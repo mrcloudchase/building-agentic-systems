@@ -37,15 +37,15 @@ it into another language.
 
 ## Example
 
-[`prompt_chaining.py`](./prompt_chaining.py) turns a raw customer support ticket
-into a polished, on-brand reply. The chain is **data** — a list of steps — and a
-loop feeds each step's output into the next via an `{input}` placeholder:
+[`prompt_chaining.py`](./prompt_chaining.py) generates how-to technical
+documentation. The chain is **data** — a list of steps — and a loop feeds each
+step's output into the next via an `{input}` placeholder:
 
 ```python
 STEPS = [
-    {"name": "extract", "prompt": "Extract the issue and key facts:\n{input}"},
-    {"name": "draft",   "prompt": "Draft a reply addressing these points:\n{input}"},
-    {"name": "polish",  "prompt": "Rewrite in brand voice:\n{input}"},
+    {"name": "outline",   "prompt": "Write a numbered outline for: {input}"},
+    {"name": "write",     "prompt": "Write the full how-to doc from this outline:\n{input}"},
+    {"name": "copy edit", "prompt": "Copy edit this document:\n{input}"},
 ]
 
 def run(steps, text):
@@ -56,21 +56,20 @@ def run(steps, text):
 
 | Step | Input | Output |
 |------|-------|--------|
-| extract | the raw ticket | the issue + key facts (order #, dates, the ask) |
-| draft | those facts | a first-draft reply |
-| polish | the draft | a concise, on-brand final reply |
+| outline | the topic | a numbered outline of the steps |
+| write | the outline | the full how-to doc (Markdown) |
+| copy edit | the doc | a polished final doc |
 
 To change the chain — add, remove, or reorder steps — you edit `STEPS`; the loop
-never changes. It runs on any ticket:
+never changes. It runs for any topic:
 
 ```bash
-python 01-prompt-chaining/prompt_chaining.py "My invoice looks wrong this month."
-# no argument → default: a delayed-order ticket
+python 01-prompt-chaining/prompt_chaining.py "how to deploy a Django app to AWS"
+# no argument → default: "how to build and train a GPT-3-style LLM"
 ```
 
 You can add a **gate** by checking a step's output inside the loop before
-continuing — for example, escalating to a human if the extracted facts mention a
-chargeback or legal threat.
+continuing — for example, stopping if the outline came back empty.
 
 ➡️ **Next:** [02 · Routing](../02-routing/) — pick a specialized path based on the
 input instead of running a fixed sequence.
