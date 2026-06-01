@@ -45,23 +45,22 @@ desktop.
 
 [`autonomous_agent.py`](./autonomous_agent.py) is a minimal coding agent in the
 spirit of [Quark](https://github.com/averagejoeslab/quark): one loop, one
-**bash** tool. At startup it seeds a gitignored `sandbox/` with a stub function
-(`string_utils.py`) and a failing test (`test_string_utils.py`), then gives the
-agent a single `bash` tool and one goal: make the tests pass.
+**bash** tool, the model drives. There's no built-in task — it's an interactive
+REPL. You type a request, and the agent uses bash to carry it out (inspect the
+project, read/write files, run commands), feeding the real command output back to
+itself at each step until the request is done. The conversation history is its
+memory across turns.
 
-With just bash, the agent does everything itself — `cat` the test, write the
-implementation, run `python test_string_utils.py`, read the output, fix, and
-re-run — using the real test result as **ground truth** at each step. It loops
-until the tests pass (it stops on its own) or hits `MAX_ITERATIONS`. Every
-command is printed so you can follow its reasoning.
+The whole agent is the loop in `agent_turn()` plus a single `bash` tool — no
+task-specific scaffolding.
 
 ```bash
 python 06-autonomous-agent/autonomous_agent.py
+# then type, e.g.:  create a fizzbuzz.py, run it, and show me the output
 ```
 
-> ⚠️ The bash tool runs real shell commands on your machine (with the sandbox as
-> the working directory, but it is **not** a hardened sandbox). Run it in a
-> throwaway / trusted environment.
+> ⚠️ The bash tool runs real shell commands on your machine — it is **not**
+> sandboxed. Run it in a throwaway / trusted directory.
 
 ➡️ **Back to:** [the overview](../README.md) — and remember the through-line:
 start simple, and only graduate to this much autonomy when the task genuinely
