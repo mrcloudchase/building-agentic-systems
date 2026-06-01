@@ -23,7 +23,7 @@ in two chained calls:
 
 | Step | Input | Output |
 |------|-------|--------|
-| 1 · outline | the topic ("how to set up SSH key login") | a numbered outline of the steps |
+| 1 · outline | the topic ("how to build & train a GPT-3-style LLM") | a numbered outline of the steps |
 | 2 · write | the outline from step 1 | the full how-to doc |
 
 That's the entire pattern: the `outline` variable is pasted into step 2's

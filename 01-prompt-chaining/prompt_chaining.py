@@ -35,7 +35,7 @@ def ask(prompt: str) -> str:
     return msg.content[0].text
 
 
-topic = "how to set up SSH key-based authentication to log in to a Linux server"
+topic = "how to build and train a GPT-3-style large language model from scratch"
 
 # Step 1: turn the topic into a numbered outline of the procedure.
 outline = ask(f"List the steps as a short numbered outline for: {topic}")
