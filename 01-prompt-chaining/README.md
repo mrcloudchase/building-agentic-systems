@@ -37,36 +37,40 @@ it into another language.
 
 ## Example
 
-[`prompt_chaining.py`](./prompt_chaining.py) writes a how-to technical document
-in three chained calls:
+[`prompt_chaining.py`](./prompt_chaining.py) defines the chain as **data** — a
+list of steps — and loops over it, feeding each step's output into the next via
+an `{input}` placeholder. The chain itself is just the `STEPS` list:
+
+```python
+STEPS = [
+    {"name": "outline",   "prompt": "Write a numbered outline for: {input}"},
+    {"name": "write",     "prompt": "Write the full how-to doc from this outline:\n{input}"},
+    {"name": "copy edit", "prompt": "Copy edit this document:\n{input}"},
+]
+
+text = topic
+for step in STEPS:
+    text = ask(step["prompt"].format(input=text))   # each output feeds the next
+```
+
+For the default topic, the three links produce:
 
 | Step | Input | Output |
 |------|-------|--------|
-| 1 · outline | the topic ("how to build & train a GPT-3-style LLM") | a numbered outline, in a fixed Markdown format |
-| 2 · write | the outline from step 1 | the full how-to doc, in a fixed Markdown format |
-| 3 · copy edit | the doc from step 2 | a polished final doc, structure unchanged |
+| outline | the topic | a numbered outline of the steps |
+| write | the outline | the full how-to doc |
+| copy edit | the doc | a polished final doc |
 
-Each step's output is pasted into the next step's prompt — that's the chain.
-Steps 1 and 2 also show the model an exact Markdown template (`OUTLINE_FORMAT` /
-`DOC_FORMAT`) and say "use exactly this format," so the output is consistent run
-to run and the next step always gets the shape it expects.
-
-The chain is wrapped in a reusable `run(topic)`, so it works for any how-to
-topic — pass one on the command line:
+To change the chain — add, remove, or reorder steps — you edit `STEPS`; the loop
+never changes. It runs for any topic:
 
 ```bash
 python 01-prompt-chaining/prompt_chaining.py "how to deploy a Django app to AWS"
 # no argument → default: "how to build and train a GPT-3-style LLM"
 ```
 
-To add a gate, you'd drop a check between two steps:
-
-```python
-outline = ask(f"List the steps as a numbered outline for: {topic}")
-if "1." not in outline:                 # the gate: did we actually get steps?
-    raise ValueError("step 1 didn't produce an outline — stopping")
-doc = ask(f"Write the doc from this outline:\n{outline}")
-```
+You can add a **gate** by checking a step's output inside the loop before
+continuing — for example, stopping if the outline came back empty.
 
 ➡️ **Next:** [02 · Routing](../02-routing/) — pick a specialized path based on the
 input instead of running a fixed sequence.
