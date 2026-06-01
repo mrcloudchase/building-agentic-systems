@@ -32,18 +32,26 @@ the subtasks in advance.
 
 ## What the example does
 
-[`orchestrator_workers.py`](./orchestrator_workers.py) answers a complex question
-in three phases:
+[`orchestrator_workers.py`](./orchestrator_workers.py) turns a software feature
+request into an implementation plan in three phases:
 
-1. **Orchestrate** — the model splits the question into a JSON list of
-   sub-questions. *We don't know how many or what they are until it answers* —
-   that's the dynamic decomposition.
-2. **Workers** — one worker call answers each sub-question (run in parallel).
-3. **Synthesize** — the orchestrator integrates the answers into one coherent
-   response to the original question.
+1. **Orchestrate** — the model breaks the feature into a JSON list of
+   implementation subtasks. *This list is the plan* — how many subtasks and
+   which ones depend on the feature, so we can't hard-code them.
+2. **Workers** — one worker fleshes out each subtask (approach + a short code
+   sketch), run in parallel.
+3. **Synthesize** — the orchestrator combines the worked-out subtasks into one
+   ordered implementation plan.
 
-Run it on a different question and the orchestrator picks different
-sub-questions — the workflow reshapes itself to the input.
+Run it on a different feature and the orchestrator produces a different plan —
+the workflow reshapes itself to the input.
+
+> **This is not a coding agent.** It's a single pass — decompose, delegate,
+> synthesize — with no acting on a real codebase and no test feedback. A full
+> coding agent like Claude Code wraps this kind of plan-and-delegate move inside
+> an *agent loop* (see [06](../06-autonomous-agent/)) that runs tools, observes
+> real results, and adapts. Orchestrator-workers is a building block such an
+> agent reaches for — not the whole agent.
 
 ## When to use it
 
