@@ -55,6 +55,25 @@ The default prompt (no argument) writes a guide to starting a podcast. A
 software feature request would instead produce an implementation plan; a
 research question would produce a researched answer. Same machinery, any input.
 
+### A concrete run
+
+To make the three phases tangible, here's what they look like for the prompt
+*"Add rate limiting to a REST API"* — note that the **plan is the decomposition
+step**, not the synthesis step:
+
+- **Plan** (`orchestrate`) → the model returns subtasks like
+  `["pick an algorithm (token bucket)", "add a Redis store", "write the
+  middleware", "return 429s with retry headers", "add tests"]`. These are chosen
+  for *this* prompt; a different prompt yields a different list.
+- **Delegate** (`work`) → each subtask is fleshed out by its own worker, in
+  parallel.
+- **Synthesize** → the workers' outputs are merged into one ordered
+  implementation plan.
+
+Swap the prompt for "Plan a 3-day trip to Tokyo" and the plan becomes
+`["day-by-day itinerary", "budget", "getting around", "where to eat"]` — same
+machinery, decomposition driven entirely by the input.
+
 > **This is not a coding agent.** It's a single pass — decompose, delegate,
 > synthesize — with no acting on a real codebase and no test feedback. A full
 > coding agent like Claude Code wraps this kind of plan-and-delegate move inside
