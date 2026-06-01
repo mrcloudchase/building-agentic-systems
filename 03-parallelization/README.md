@@ -40,18 +40,29 @@ problem.
 
 ## Example
 
-[`parallelization.py`](./parallelization.py) reviews one small code snippet —
-which has a SQL-injection hole, an inefficient loop, and unclear names — using a
-thread pool to fire the calls concurrently:
+[`parallelization.py`](./parallelization.py) reviews one code snippet — which
+has a SQL-injection hole, an inefficient loop, and unclear names. Two small
+functions, each fanning calls out with a thread pool:
 
-- **Sectioning** — three reviewers look at the same code for *different* concerns
-  (security, performance, readability) at the same time, so each finds something
-  different.
-- **Voting** — asks "does this code contain a vulnerability?" three times and
-  flags the code if *any* of the three says yes.
+```python
+ASPECTS = ["security", "performance", "readability"]
 
-The whole mechanic is `ThreadPoolExecutor` + `pool.map(ask, ...)` — fan the calls
-out, collect the results.
+def section(aspects, code):                      # run different reviews at once
+    prompts = [f"Review for {a} issues:\n{code}" for a in aspects]
+    with ThreadPoolExecutor() as pool:
+        return dict(zip(aspects, pool.map(ask, prompts)))
+
+def vote(prompt, n=3):                            # run the same check n times
+    with ThreadPoolExecutor() as pool:
+        return list(pool.map(lambda _: ask(prompt), range(n)))
+```
+
+- **Sectioning** — `section(ASPECTS, code)` reviews the code for each concern in
+  parallel, so each reviewer finds something different.
+- **Voting** — `vote(...)` asks "is there a vulnerability?" three times and flags
+  the code if *any* of the three says yes.
+
+It runs on any snippet (the default is the flawed one above):
 
 ```bash
 python 03-parallelization/parallelization.py
