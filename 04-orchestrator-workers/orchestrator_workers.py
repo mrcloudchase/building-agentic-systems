@@ -30,6 +30,8 @@ import anthropic
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
+DEFAULT_INPUT = "Write a practical guide to starting a podcast."
+
 
 def ask(prompt: str, max_tokens: int = 2048) -> str:
     """Send one prompt and return the text."""
@@ -88,7 +90,7 @@ def run(task: str) -> str:
 
 if __name__ == "__main__":
     # Use a prompt passed on the command line, or fall back to a default.
-    task = " ".join(sys.argv[1:]) or "Write a practical guide to starting a podcast."
+    task = " ".join(sys.argv[1:]) or DEFAULT_INPUT
     print(f"Task: {task}\n")
     result = run(task)
     print("\n=== result ===")
