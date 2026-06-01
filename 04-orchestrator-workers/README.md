@@ -46,31 +46,26 @@ gather and combine information from multiple sources chosen on the fly.
 
 ## Example
 
-[`orchestrator_workers.py`](./orchestrator_workers.py) produces a market /
-due-diligence research brief. Because the decomposition is model-driven, the code
-isn't tied to one request — it's a reusable `run(request)` made of three small
-functions, one per job above: `orchestrate(request)` returns a JSON list of
-research angles chosen for this request, `work(request, angle)` researches each
-angle in parallel, and `synthesize(...)` combines them into one brief.
+[`orchestrator_workers.py`](./orchestrator_workers.py) produces a market-research
+brief. The model picks the research angles at runtime (**decompose**), a worker
+researches each in parallel (**delegate**), then one call combines them
+(**synthesize**):
 
-Pass any request and the workflow reshapes itself to it:
-
-```bash
-python 04-orchestrator-workers/orchestrator_workers.py "Diligence on a B2B payroll startup"
-# no argument → default: market opportunity for an AI meal-planning app
+```python
+plan = ask(f"Break this into 3-5 research angles. Reply with ONLY a JSON array of strings.\n\n{request}")
+angles = json.loads(plan[plan.index("["):plan.rindex("]") + 1])
+def work(angle): return f"## {angle}\n" + ask(f"Research this angle of the request '{request}': {angle}")
+with ThreadPoolExecutor() as pool:
+    sections = list(pool.map(work, angles))
+print(ask(f"Combine these into one market brief for '{request}':\n\n" + "\n\n".join(sections)))
 ```
 
-For the default request, the three jobs play out as:
+The angles aren't hard-coded — a different request yields a different plan. Run
+it:
 
-- **Decompose** → research angles like `["market size & growth", "target
-  customers", "competitive landscape", "key risks"]` — this list *is* the plan,
-  chosen at runtime.
-- **Delegate** → each angle is researched by its own worker, in parallel.
-- **Synthesize** → the sections are merged into one brief with an executive
-  summary.
-
-Swap the request for a diligence prompt and the angles change to fit it — same
-machinery, decomposition driven entirely by the input.
+```bash
+python 04-orchestrator-workers/orchestrator_workers.py
+```
 
 ➡️ **Next:** [05 · Evaluator-Optimizer](../05-evaluator-optimizer/) — improve a
 single output through a feedback loop.

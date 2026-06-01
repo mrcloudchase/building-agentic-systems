@@ -38,23 +38,24 @@ searching and refining before the answer is complete.
 
 ## Example
 
-[`evaluator_optimizer.py`](./evaluator_optimizer.py) writes marketing copy for a
-financial offer that must satisfy a compliance + quality rubric (under 30 words,
-includes the required APY disclaimer, makes no prohibited claims, ends with a
-clear CTA):
+[`evaluator_optimizer.py`](./evaluator_optimizer.py) writes compliant marketing
+copy: generate, check against a rubric, revise — looping until it passes (or 4
+rounds):
 
-- The **optimizer** (copywriter) writes the blurb, and on later rounds revises it
-  using the feedback.
-- The **evaluator** (compliance reviewer) returns a structured verdict — `PASS`,
-  or `FAIL` plus one line of specific feedback.
-- The loop runs until `PASS` or `MAX_ROUNDS`.
+```python
+copy = feedback = ""
+for _ in range(4):
+    copy = ask(f"Write marketing copy for: {offer}.\nIt must satisfy: {criteria}.\nPrevious attempt: {copy}\nReviewer feedback: {feedback}\nReturn only the copy.")
+    verdict = ask(f"Judge this copy against [{criteria}]. Reply 'PASS' or 'FAIL: <one-line fix>'.\nCopy: {copy}")
+    if verdict.strip().upper().startswith("PASS"): break
+    feedback = verdict
+```
 
-You'll see the copy converge on the rubric as the reviewer's notes get folded in
-(the missing disclaimer is the usual first failure). It runs on any offer:
+The `criteria` includes a required disclaimer and banned claims, so the missing
+disclaimer is usually the first failure the reviewer catches. Run it:
 
 ```bash
-python 05-evaluator-optimizer/evaluator_optimizer.py "a no-fee checking account"
-# no argument → default: a 4.5% APY savings account
+python 05-evaluator-optimizer/evaluator_optimizer.py
 ```
 
 ➡️ **Next:** [06 · Autonomous Agent](../06-autonomous-agent/) — hand the control

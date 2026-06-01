@@ -40,30 +40,22 @@ problem.
 
 ## Example
 
-[`parallelization.py`](./parallelization.py) reviews a contract excerpt — which
-has an auto-renewal trap, a tight liability cap, a jury-trial waiver, and
-unilateral price changes. Two small functions, each fanning calls out with a
-thread pool:
+[`parallelization.py`](./parallelization.py) reviews a contract two ways at once,
+fanning the calls out with a thread pool:
 
 ```python
-ASPECTS = ["payment & renewal terms", "liability & risk", "missing standard clauses"]
-
-def section(aspects, text):                      # run different reviews at once
-    prompts = [f"Review this contract for {a}:\n{text}" for a in aspects]
-    with ThreadPoolExecutor() as pool:
-        return dict(zip(aspects, pool.map(ask, prompts)))
-
-def vote(prompt, n=3):                            # run the same check n times
-    with ThreadPoolExecutor() as pool:
-        return list(pool.map(lambda _: ask(prompt), range(n)))
+aspects = ["payment & renewal", "liability & risk", "missing standard clauses"]
+with ThreadPoolExecutor() as pool:
+    reviews = list(pool.map(ask, [f"Review this contract for {a}:\n{contract}" for a in aspects]))  # SECTIONING
+    votes = list(pool.map(lambda _: ask(f"...high-risk clause needing legal review? YES or NO:\n{contract}"), range(3)))  # VOTING
 ```
 
-- **Sectioning** — `section(ASPECTS, contract)` reviews the contract on each
-  concern in parallel, so each reviewer finds something different.
-- **Voting** — `vote(...)` asks "is there a high-risk clause?" three times and
-  escalates to legal if *any* of the three says yes.
+- **Sectioning** reviews each concern in parallel, so each reviewer finds
+  something different.
+- **Voting** runs the same high-risk check three times and escalates to legal if
+  *any* says YES.
 
-It runs on any contract excerpt (the default is the risky one above):
+Run it:
 
 ```bash
 python 03-parallelization/parallelization.py

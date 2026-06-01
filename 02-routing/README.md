@@ -37,40 +37,22 @@ cost and latency.
 
 ## Example
 
-[`routing.py`](./routing.py) triages a shared inbox. The routes are **data** — a
-dict of category → specialized system prompt — and `route()` is two calls:
-classify, then dispatch.
+[`routing.py`](./routing.py) triages a shared inbox: one call classifies the
+email, a second answers with that category's system prompt.
 
 ```python
-ROUTES = {
-    "sales":     "You are a sales rep...",
-    "billing":   "You are a billing specialist...",
-    "technical": "You are a support engineer...",
-    "careers":   "You are a recruiter...",
-}
-
-def route(routes, message):
-    labels = ", ".join(routes)
-    category = ask(f"Classify into one of: {labels}...\n{message}").strip().lower()
-    return ask(message, system=routes[category])   # dispatch to the chosen route
+routes = {"sales": "You are a sales rep.", "billing": "You are a billing specialist.",
+          "technical": "You are a support engineer.", "careers": "You are a recruiter."}
+email = "Could we set up a demo and talk about enterprise pricing?"
+category = ask(f"Classify into one of {', '.join(routes)} — reply with one word:\n{email}").strip().lower()
+print(f"[{category}]", ask(email, routes.get(category, "You are a helpful assistant.")))
 ```
 
-So different emails take different paths:
-
-| Email | Route |
-|-------|-------|
-| "Could we set up a demo and talk enterprise pricing?" | `sales` |
-| "My invoice looks higher than last month." | `billing` |
-| "The export button returns a 500 error." | `technical` |
-| "I'd love to apply for the backend role." | `careers` |
-
-The classifier's labels come straight from the `ROUTES` keys, so adding a
-category updates the routing automatically (with a fallback to the first route if
-the model returns something unexpected). It runs on any email:
+The classifier's labels come straight from the `routes` keys, so adding a
+category updates the routing automatically. Run it:
 
 ```bash
-python 02-routing/routing.py "The export button returns a 500 error."
-# no argument → default: a sales inquiry
+python 02-routing/routing.py
 ```
 
 ➡️ **Next:** [03 · Parallelization](../03-parallelization/) — run multiple calls at

@@ -38,38 +38,23 @@ it into another language.
 ## Example
 
 [`prompt_chaining.py`](./prompt_chaining.py) generates how-to technical
-documentation. The chain is **data** — a list of steps — and a loop feeds each
-step's output into the next via an `{input}` placeholder:
+documentation by feeding each step's output into the next prompt. The whole
+thing (with `ask()` a one-line wrapper over `client.messages.create`):
 
 ```python
-STEPS = [
-    {"name": "outline",   "prompt": "Write a numbered outline for: {input}"},
-    {"name": "write",     "prompt": "Write the full how-to doc from this outline:\n{input}"},
-    {"name": "copy edit", "prompt": "Copy edit this document:\n{input}"},
-]
-
-def run(steps, text):
-    for step in steps:
-        text = ask(step["prompt"].format(input=text))   # each output feeds the next
-    return text
+steps = ["Write a numbered outline of the steps for: {}",
+         "Write a how-to technical doc (Markdown) from this outline:\n{}",
+         "Copy edit this document, keeping its structure and commands:\n{}"]
+text = "how to build and train a GPT-3-style LLM from scratch"
+for step in steps:
+    text = ask(step.format(text)); print(text, "\n")
 ```
 
-| Step | Input | Output |
-|------|-------|--------|
-| outline | the topic | a numbered outline of the steps |
-| write | the outline | the full how-to doc (Markdown) |
-| copy edit | the doc | a polished final doc |
-
-To change the chain — add, remove, or reorder steps — you edit `STEPS`; the loop
-never changes. It runs for any topic:
+The chain *is* the `steps` list; the loop never changes. Run it:
 
 ```bash
-python 01-prompt-chaining/prompt_chaining.py "how to deploy a Django app to AWS"
-# no argument → default: "how to build and train a GPT-3-style LLM"
+python 01-prompt-chaining/prompt_chaining.py
 ```
-
-You can add a **gate** by checking a step's output inside the loop before
-continuing — for example, stopping if the outline came back empty.
 
 ➡️ **Next:** [02 · Routing](../02-routing/) — pick a specialized path based on the
 input instead of running a fixed sequence.
