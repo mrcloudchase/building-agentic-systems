@@ -53,6 +53,3 @@ The whole pattern is the two calls in `handle()`: one to pick the label
 ```bash
 python 02-routing/routing.py
 ```
-
-➡️ **Next:** [03 · Parallelization](../03-parallelization/) — run multiple calls at
-once instead of choosing a single path.

@@ -17,13 +17,8 @@ task → [orchestrator] ─→ [worker] ─┼─→ [synthesize] → output
 Three jobs, always the same whatever the task: **decompose** (split into
 subtasks — *this is the plan*, produced at runtime), **delegate** (hand each
 subtask to a worker), **synthesize** (merge the results into one output). It's
-still a **workflow**, but the most dynamic one. The difference from
-parallelization is **who decides the subtasks**:
-
-| | Parallelization (03) | Orchestrator-Workers (04) |
-|--|----------------------|---------------------------|
-| Subtasks | **fixed by you** in code | **chosen by the model** at runtime |
-| Shape | same every run | adapts to the input |
+still a **workflow**, but the most dynamic one: the subtasks aren't hard-coded —
+the model chooses them at runtime, so the shape adapts to each input.
 
 ## When to use it
 
@@ -34,11 +29,9 @@ parallelization) is simpler.
 
 Because the orchestrator decides the plan, you hand it more autonomy, so errors
 compound — keeping its output **structured** (a JSON list) lets you inspect the
-plan before acting on it. Note the boundary, too: this is a single pass with no
-feedback loop. A full agent like Claude Code wraps this kind of plan-and-delegate
-move inside an *agent loop* ([06](../06-autonomous-agent/)) that runs tools and
-adapts — orchestrator-workers is a building block such an agent reaches for, not
-the whole agent.
+plan before acting on it. Note the boundary, too: this is a single structured
+pass with no feedback loop — it decomposes, delegates, and synthesizes once,
+without acting on the world or adapting to results.
 
 **Examples from the article:** coding tasks that change an unpredictable number
 of files (the orchestrator decides which files need edits); search tasks that
@@ -72,6 +65,3 @@ For the prompt *"Add rate limiting to a REST API,"* the three jobs play out as:
 Swap the prompt for *"Plan a 3-day trip to Tokyo"* and the plan becomes
 `["day-by-day itinerary", "budget", "getting around", "where to eat"]` — same
 machinery, decomposition driven entirely by the input.
-
-➡️ **Next:** [05 · Evaluator-Optimizer](../05-evaluator-optimizer/) — improve a
-single output through a feedback loop.

@@ -5,8 +5,8 @@ decide the sequence of actions itself. The loop runs until the model stops
 requesting tools (it considers the task done), with a hard iteration cap as a
 safety stop.
 
-This is mechanically like the augmented-LLM loop in 00, but the mindset is
-different: open-ended goal, model-chosen steps, runs to completion on its own.
+Mechanically it's a tool-use loop, but the mindset is open-ended: the model
+chooses the steps and runs to completion on its own.
 
 Run it:
     pip install anthropic

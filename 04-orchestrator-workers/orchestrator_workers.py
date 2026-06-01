@@ -3,15 +3,14 @@
 An orchestrator LLM decides, at runtime, how to break a task into subtasks; a
 worker handles each subtask; the orchestrator then combines the results.
 
-The key difference from parallelization (03): the subtasks are NOT fixed in
-code. The orchestrator chooses them based on the input — so this works for *any*
-prompt, not one hard-coded task.
+The subtasks are NOT fixed in code — the orchestrator chooses them based on the
+input, so this works for *any* prompt, not one hard-coded task.
 
     prompt → [orchestrator: split into subtasks] → [worker per subtask] → [synthesize] → result
 
 This is one structured pass — decompose, delegate, synthesize. There's no acting
-on the world and no feedback loop; a full agent (pattern 06) wraps this kind of
-plan-and-delegate move inside a loop that runs tools and adapts.
+on the world and no feedback loop: it decomposes, delegates, and synthesizes
+once.
 
 Run it (pass any prompt, or use the default):
     pip install anthropic
