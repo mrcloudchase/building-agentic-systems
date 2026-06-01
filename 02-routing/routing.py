@@ -1,11 +1,11 @@
-"""02 · Routing — classify the input, then hand it to a specialized handler.
+"""02 · Routing — the simplest version.
 
-A support-triage workflow:
+Routing classifies an input, then sends it to a handler specialized for that
+category. A first call picks the label; a second call answers using the prompt
+for that label. The set of routes is fixed in code, which makes this a workflow,
+not an agent — only *which* path runs is decided at runtime.
 
-    message → [router classifies] → billing | technical | general handler
-
-The router is constrained to return exactly one valid label, so the routing
-decision is clean. Each handler has its own focused system prompt.
+    message → [classify] → billing | technical | general → [specialized reply]
 
 Run it:
     pip install anthropic
@@ -17,70 +17,54 @@ import os
 
 import anthropic
 
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
 
-def complete(prompt: str, system: str | None = None, max_tokens: int = 2048) -> str:
-    """Send a single prompt and return Claude's text response."""
+def ask(prompt: str, system: str | None = None) -> str:
+    """Send one prompt (with an optional system prompt) and return the text."""
     kwargs: dict = {
         "model": MODEL,
-        "max_tokens": max_tokens,
+        "max_tokens": 1024,
         "messages": [{"role": "user", "content": prompt}],
     }
-    if system is not None:
+    if system:
         kwargs["system"] = system
-    response = client.messages.create(**kwargs)
-    return "".join(b.text for b in response.content if b.type == "text")
+    msg = client.messages.create(**kwargs)
+    return msg.content[0].text
 
 
-# Each route has a system prompt tuned for that category. This is the payoff of
-# routing: focused prompts that can be improved independently.
-HANDLERS = {
+# Each route is a category → a specialized system prompt. Because the handlers
+# are separate, you can tune one without affecting the others.
+ROUTES = {
     "billing": "You are a billing specialist. Be precise about charges, refunds, "
-    "and payment methods. Keep answers under 4 sentences.",
-    "technical": "You are a senior technical support engineer. Give clear, "
-    "step-by-step troubleshooting. Keep answers under 5 sentences.",
-    "general": "You are a friendly support generalist. Answer warmly and "
-    "concisely in under 3 sentences.",
+    "and payment methods. Answer in under 4 sentences.",
+    "technical": "You are a support engineer. Give clear, step-by-step "
+    "troubleshooting. Answer in under 5 sentences.",
+    "general": "You are a friendly support agent. Answer warmly in under 3 sentences.",
 }
 
 
-def route(message: str) -> str:
-    """Classify the message into one of the handler categories.
-
-    We instruct the model to reply with ONLY the label, then defensively
-    normalize and validate it so a stray word can't break routing.
-    """
-    raw = complete(
-        "Classify the customer message into exactly one category. "
-        "Reply with only the lowercase category word, nothing else.\n"
-        "Categories: billing, technical, general\n\n"
-        f"Message: {message}",
-        max_tokens=16,
-    )
-    label = raw.strip().lower()
-    if label not in HANDLERS:
-        # Fall back to 'general' if the model returned something unexpected.
-        label = "general"
-    return label
-
-
 def handle(message: str) -> str:
-    """Route the message, then answer it with the chosen handler."""
-    category = route(message)
-    print(f"  [router] → {category}")
-    return complete(message, system=HANDLERS[category])
+    # Step 1: classify the message into one of the route labels.
+    category = ask(
+        "Classify this support message into one word — billing, technical, or "
+        f"general. Reply with only the word.\n\nMessage: {message}"
+    ).strip().lower()
+    if category not in ROUTES:
+        category = "general"  # fallback if the model returns something unexpected
+
+    # Step 2: dispatch to the specialized handler for that category.
+    print(f"  [routed to: {category}]")
+    return ask(message, system=ROUTES[category])
 
 
-if __name__ == "__main__":
-    messages = [
-        "I was charged twice for my subscription this month — can I get a refund?",
-        "The app crashes every time I try to upload a photo. How do I fix it?",
-        "What are your support hours?",
-    ]
+messages = [
+    "I was double-charged for my subscription this month — can I get a refund?",
+    "The app crashes every time I try to upload a photo.",
+    "What are your support hours?",
+]
 
-    for msg in messages:
-        print(f"\nMessage: {msg}")
-        answer = handle(msg)
-        print(f"  [answer] {answer}")
+for message in messages:
+    print(f"\nMessage: {message}")
+    print(f"  {handle(message)}")
