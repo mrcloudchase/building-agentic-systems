@@ -1,13 +1,19 @@
-"""06 · Autonomous Agent — a tool-using loop where the MODEL drives.
+"""06 · Autonomous Agent — a minimal coding agent (one bash tool).
 
-Business use case: a software-engineering agent. At startup we seed a sandbox
-with a stub function and a failing test, then give the agent file tools plus a
-`run_tests` tool and let it implement the function until the tests pass.
+Inspired by Quark (https://github.com/averagejoeslab/quark): one loop, one bash
+tool, the model drives. We seed a sandbox with a stub function and a failing
+test, give the agent a single `bash` tool, and let it work until the tests pass.
 
-The agent decides the sequence of actions itself — read the test, write code, run
-the tests, read the failure, fix it — using the real test output as ground truth
-at each step. It loops until the tests pass (it stops on its own) or hits a hard
-iteration cap.
+    task → [model plans → runs bash → sees output] → repeat → done
+
+With just bash the agent does everything itself — read files, write code, run
+the tests — and uses the real command output as ground truth to decide its next
+move. It loops until it stops requesting tools (it considers the task done) or
+hits a hard iteration cap.
+
+⚠️  The bash tool runs real shell commands on your machine (with the sandbox as
+the working directory, but this is NOT a hardened sandbox). Run it in a
+throwaway / trusted environment.
 
 Run it:
     pip install anthropic
@@ -17,7 +23,6 @@ Run it:
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import anthropic
@@ -25,27 +30,24 @@ import anthropic
 client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
 
-# Everything the agent does is confined to this scratch directory (gitignored).
+# The agent's working directory (gitignored). Commands run here.
 SANDBOX = Path(__file__).resolve().parent / "sandbox"
-TEST_FILE = "test_string_utils.py"
-
-MAX_ITERATIONS = 12  # the stopping condition — never let an agent loop forever
+MAX_ITERATIONS = 15  # the stopping condition — never let an agent loop forever
 
 SYSTEM_PROMPT = (
-    "You are a software engineer working in a sandbox directory. Use the tools to "
-    "read files, write code, and run the tests. Work iteratively: inspect the "
-    "test, implement the function, run the tests, and fix any failures. When the "
-    "tests pass, stop and give a one-line summary instead of calling another tool."
+    "You are a coding agent working in a sandbox directory. You have one tool: "
+    "bash. Use it to read files, write code, and run commands. Work step by step "
+    "until the task is complete; when it is, reply with a short summary instead "
+    "of calling bash again."
 )
 
 TASK = (
-    "Implement the slugify() function in string_utils.py so that "
-    f"{TEST_FILE} passes. Read the test first, then write the implementation, and "
-    "run the tests to confirm."
+    "The sandbox contains string_utils.py (a stub) and test_string_utils.py. "
+    "Implement slugify() in string_utils.py so the tests pass. Run "
+    "`python test_string_utils.py` to check your work."
 )
 
-# Files seeded into the sandbox at startup: a stub to implement and a test that
-# checks it. The agent's job is to make the test pass.
+# Files seeded into the sandbox at startup so the run is reproducible.
 STUB = '''def slugify(text):
     """Convert text into a URL slug (lowercase, words joined by hyphens)."""
     raise NotImplementedError
@@ -59,84 +61,35 @@ assert slugify("Already-Slug") == "already-slug"
 print("ALL TESTS PASSED")
 '''
 
-TOOLS = [
-    {
-        "name": "list_files",
-        "description": "List the files currently in the sandbox directory.",
-        "input_schema": {"type": "object", "properties": {}},
+# The single tool — exactly like Quark's one bash tool.
+BASH_TOOL = {
+    "name": "bash",
+    "description": "Run a bash command in the sandbox and return its output.",
+    "input_schema": {
+        "type": "object",
+        "properties": {"command": {"type": "string", "description": "The command to run."}},
+        "required": ["command"],
     },
-    {
-        "name": "read_file",
-        "description": "Read and return the contents of a file in the sandbox.",
-        "input_schema": {
-            "type": "object",
-            "properties": {"filename": {"type": "string"}},
-            "required": ["filename"],
-        },
-    },
-    {
-        "name": "write_file",
-        "description": "Create or overwrite a file in the sandbox with the given text.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "filename": {"type": "string"},
-                "content": {"type": "string"},
-            },
-            "required": ["filename", "content"],
-        },
-    },
-    {
-        "name": "run_tests",
-        "description": "Run the test file and return its exit code and output.",
-        "input_schema": {"type": "object", "properties": {}},
-    },
-]
+}
 
 
-def _safe_path(filename: str) -> Path:
-    """Resolve a filename inside the sandbox, refusing path traversal."""
-    target = (SANDBOX / filename).resolve()
-    if SANDBOX.resolve() not in target.parents and target != SANDBOX.resolve():
-        raise ValueError("Path escapes the sandbox.")
-    return target
-
-
-def run_tool(name: str, tool_input: dict) -> str:
-    """Execute a tool call (this is YOUR code — the model only requested it)."""
+def run_bash(command: str) -> str:
+    """Execute a bash command in the sandbox; return its exit code and output."""
     try:
-        if name == "list_files":
-            files = sorted(p.name for p in SANDBOX.iterdir() if p.is_file())
-            return "Files: " + ", ".join(files)
-
-        if name == "read_file":
-            return _safe_path(tool_input["filename"]).read_text()
-
-        if name == "write_file":
-            _safe_path(tool_input["filename"]).write_text(tool_input["content"])
-            return f"Wrote {tool_input['filename']}."
-
-        if name == "run_tests":
-            proc = subprocess.run(
-                [sys.executable, TEST_FILE],
-                cwd=SANDBOX,
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            return f"exit code {proc.returncode}\n{proc.stdout}{proc.stderr}".strip()
-
+        proc = subprocess.run(
+            command, shell=True, cwd=SANDBOX,
+            capture_output=True, text=True, timeout=30,
+        )
+        output = (proc.stdout + proc.stderr).strip()
+        return f"exit {proc.returncode}\n{output}".strip()
     except Exception as exc:  # noqa: BLE001
         return f"Error: {exc}"
 
-    return f"Unknown tool: {name}"
-
 
 def seed_sandbox() -> None:
-    """Write the stub + test into the sandbox so the run is reproducible."""
     SANDBOX.mkdir(exist_ok=True)
     (SANDBOX / "string_utils.py").write_text(STUB)
-    (SANDBOX / TEST_FILE).write_text(TEST)
+    (SANDBOX / "test_string_utils.py").write_text(TEST)
 
 
 def run_agent(task: str) -> str:
@@ -148,31 +101,31 @@ def run_agent(task: str) -> str:
             model=MODEL,
             max_tokens=2048,
             system=SYSTEM_PROMPT,
-            tools=TOOLS,
+            tools=[BASH_TOOL],
             messages=messages,
         )
 
         for block in response.content:
             if block.type == "text" and block.text.strip():
-                print(f"[step {step}] thinking: {block.text.strip()}")
+                print(f"[step {step}] {block.text.strip()}")
             elif block.type == "tool_use":
-                print(f"[step {step}] action: {block.name}({block.input})")
+                print(f"[step {step}] bash: {block.input['command']}")
 
         # The model stopped asking for tools → it considers the task done.
         if response.stop_reason != "tool_use":
             return "".join(b.text for b in response.content if b.type == "text")
 
-        # Run the requested tools and feed results back.
+        # Run each requested command and feed the output back.
         messages.append({"role": "assistant", "content": response.content})
-        tool_results = []
+        results = []
         for block in response.content:
             if block.type == "tool_use":
-                result = run_tool(block.name, block.input)
-                print(f"          observed: {result}")
-                tool_results.append(
-                    {"type": "tool_result", "tool_use_id": block.id, "content": result}
+                output = run_bash(block.input["command"])
+                print(f"          {output}")
+                results.append(
+                    {"type": "tool_result", "tool_use_id": block.id, "content": output}
                 )
-        messages.append({"role": "user", "content": tool_results})
+        messages.append({"role": "user", "content": results})
 
     return "(reached the iteration cap without finishing)"
 
